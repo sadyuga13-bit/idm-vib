@@ -5,11 +5,13 @@
 #include "network/QueueScheduler.h"
 #include "security/LicenseCoordinator.h"
 #include "storage/DatabaseManager.h"
+#include "system/TrayController.h"
 #include "ui/delegates/DownloadItemDelegate.h"
 #include "ui/models/DownloadTableModel.h"
 #include "ui/widgets/InspectorDock.h"
 #include "ui/widgets/SidebarTree.h"
 #include "ui/widgets/TopToolbar.h"
+#include <QCloseEvent>
 #include <QLabel>
 #include <QMainWindow>
 #include <QTableView>
@@ -23,11 +25,18 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow() override = default;
 
+    void handleSecondaryInstancePayload(const QString& payload);
+
+protected:
+    void closeEvent(QCloseEvent* event) override;
+
 private:
     void setupUi();
     void setupStatusBar();
     void wireSignals();
+    void wireTraySignals();
     void applySavedPreferences();
+    void bindTaskPopups(network::DownloadTask* task);
 
     void openAddDownloadDialog(
         const QString& prefillUrl = QString(),
@@ -54,6 +63,8 @@ private:
     network::QueueScheduler* m_scheduler{nullptr};
     ipc::BrowserIpcServer m_ipcServer;
     ipc::ClipboardWatcher m_clipboardWatcher;
+    system::TrayController m_trayController;
+    bool m_forceQuit{false};
 
     widgets::TopToolbar* m_toolbar{nullptr};
     widgets::SidebarTree* m_sidebar{nullptr};

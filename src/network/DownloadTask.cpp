@@ -38,16 +38,12 @@ DownloadTask::~DownloadTask() { pause(); }
 
 void DownloadTask::start() {
     if (m_metrics.state == core::TaskState::Active || m_metrics.state == core::TaskState::Probing ||
-        m_metrics.state == core::TaskState::Verifying || m_metrics.state == core::TaskState::Completed) {
-        return;
-    }
+        m_metrics.state == core::TaskState::Verifying || m_metrics.state == core::TaskState::Completed) { return; }
     m_metrics.errorMessage.clear();
     m_profile.applyProxyToManager(&m_nam);
-
     const QUrl targetUrl(m_metrics.url);
     if (YoutubeExtractor::isYoutubeUrl(targetUrl)) {
         setState(core::TaskState::Probing);
-        appendLog(QStringLiteral("[YouTube] Resolving Innertube direct stream for %1").arg(m_metrics.url));
         m_ytExtractor.extractVideoInfo(targetUrl);
         return;
     }
@@ -56,40 +52,23 @@ void DownloadTask::start() {
         return;
     }
     setState(core::TaskState::Probing);
-    appendLog(QStringLiteral("[Prober] Probing endpoint %1").arg(m_metrics.url));
     m_prober.probeUrl(targetUrl, m_profile);
 }
-
 void DownloadTask::pause() {
-    m_ytExtractor.abort();
-    m_prober.abort();
-    m_metricsTimer.stop();
+    m_ytExtractor.abort(); m_prober.abort(); m_metricsTimer.stop();
     for (SegmentWorker* worker : m_workers) { worker->pause(); }
     m_diskWriter.flush();
-    m_metrics.speedBytesPerSec = 0;
-    m_metrics.etaSeconds = -1;
+    m_metrics.speedBytesPerSec = 0; m_metrics.etaSeconds = -1;
     if (m_metrics.state == core::TaskState::Active || m_metrics.state == core::TaskState::Probing) {
-        onTickMetrics();
-        appendLog(QStringLiteral("[Task] Paused at %1").arg(core::FormatUtils::formatBytes(m_metrics.downloadedBytes)));
-        setState(core::TaskState::Paused);
+        onTickMetrics(); setState(core::TaskState::Paused);
     }
 }
-
 void DownloadTask::cancel(bool deleteFiles) {
-    m_ytExtractor.abort();
-    m_prober.abort();
-    m_hashVerifier.cancel();
-    m_metricsTimer.stop();
+    m_ytExtractor.abort(); m_prober.abort(); m_hashVerifier.cancel(); m_metricsTimer.stop();
     for (SegmentWorker* worker : m_workers) { worker->pause(); }
-    qDeleteAll(m_workers);
-    m_workers.clear();
-    m_diskWriter.close();
-    if (deleteFiles) {
-        m_diskWriter.removePartFile();
-        QFile::remove(m_metrics.fullSavePath());
-    }
-    m_metrics.speedBytesPerSec = 0;
-    m_metrics.etaSeconds = -1;
+    qDeleteAll(m_workers); m_workers.clear(); m_diskWriter.close();
+    if (deleteFiles) { m_diskWriter.removePartFile(); QFile::remove(m_metrics.fullSavePath()); }
+    m_metrics.speedBytesPerSec = 0; m_metrics.etaSeconds = -1;
     setState(core::TaskState::Canceled);
 }
 
@@ -103,6 +82,32 @@ void DownloadTask::runHashVerification() {
 void DownloadTask::setTaskSpeedLimitKiB(qint64 kibPerSec) { m_taskLimiter.setLimitKiBPerSec(kibPerSec); }
 qint64 DownloadTask::taskSpeedLimitKiB() const noexcept { return m_taskLimiter.limitKiBPerSec(); }
 
+void DownloadTask::setDynamicSegmentCount(int newCount) {
+    const int target = (m_capabilityToken != nullptr)
+        ? m_capabilityToken->resolvePermittedSegments(newCount) : std::clamp(newCount, 1, 32);
+    m_metrics.maxSegments = target;
+    if (m_metrics.state != core::TaskState::Active || !m_metrics.resumeSupported) { return; }
+    while (m_workers.size() < target && m_workers.size() < 32) {
+        SegmentWorker* largest = nullptr;
+        qint64 maxRem = 0;
+        for (SegmentWorker* w : m_workers) {
+            if (w->remainingBytes() > maxRem) { maxRem = w->remainingBytes(); largest = w; }
+        }
+        if (largest == nullptr || maxRem < 1048576) { break; }
+        const SplitRange split = largest->tryStealHalf(1048576);
+        if (!split.valid) { break; }
+        const int nextId = static_cast<int>(m_workers.size()) + 1;
+        auto* worker = new SegmentWorker(nextId, split.newStartOffset, split.newStartOffset,
+            split.newEndOffset, &m_diskWriter, m_globalLimiter, &m_taskLimiter, this);
+        connect(worker, &SegmentWorker::bytesWritten, this, &DownloadTask::onSegmentBytesWritten);
+        connect(worker, &SegmentWorker::segmentFinished, this, &DownloadTask::onSegmentFinished);
+        connect(worker, &SegmentWorker::segmentFailed, this, &DownloadTask::onSegmentFailed);
+        m_workers.append(worker);
+        worker->start(QUrl(m_metrics.url), m_profile, &m_nam);
+    }
+    onTickMetrics();
+}
+
 void DownloadTask::onYoutubeExtracted(const YoutubeVideoInfo& info) {
     if (!info.success || info.formats.isEmpty()) {
         m_metrics.errorMessage = info.errorMessage;
@@ -112,9 +117,7 @@ void DownloadTask::onYoutubeExtracted(const YoutubeVideoInfo& info) {
     }
     const YoutubeFormat& fmt = info.formats.first();
     m_metrics.url = fmt.directUrl;
-    if (!fmt.userAgent.isEmpty()) {
-        m_profile.userAgent = fmt.userAgent;
-    }
+    if (!fmt.userAgent.isEmpty()) { m_profile.userAgent = fmt.userAgent; }
     m_metrics.fileName = YoutubeExtractor::sanitizeVideoFileName(info.title, fmt.qualityTag, fmt.fileExtension);
     m_metrics.category = storage::CategoryRouter::classifyFileName(m_metrics.fileName);
     if (fmt.contentLength > 0) {
@@ -125,7 +128,6 @@ void DownloadTask::onYoutubeExtracted(const YoutubeVideoInfo& info) {
         m_prober.probeUrl(QUrl(m_metrics.url), m_profile);
     }
 }
-
 void DownloadTask::onProbeCompleted(const ProbeResult& result) {
     if (!result.success) {
         m_metrics.errorMessage = result.errorMessage;
@@ -140,9 +142,6 @@ void DownloadTask::onProbeCompleted(const ProbeResult& result) {
     }
     m_metrics.totalBytes = std::max<qint64>(0, result.contentLength);
     m_metrics.resumeSupported = result.supportsRanges && (m_metrics.totalBytes > 0);
-    appendLog(QStringLiteral("[Prober] HTTP %1 | Size: %2 | Range: %3")
-        .arg(result.httpStatusCode).arg(core::FormatUtils::formatBytes(m_metrics.totalBytes))
-        .arg(m_metrics.resumeSupported ? QStringLiteral("Yes") : QStringLiteral("No")));
     initializeSegmentsAndStart(false);
 }
 

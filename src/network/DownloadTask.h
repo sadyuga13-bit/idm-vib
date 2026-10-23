@@ -38,6 +38,7 @@ public:
 
     void setTaskSpeedLimitKiB(qint64 kibPerSec);
     [[nodiscard]] qint64 taskSpeedLimitKiB() const noexcept;
+    void setDynamicSegmentCount(int newCount);
 
     [[nodiscard]] QString taskId() const { return m_metrics.taskId; }
     [[nodiscard]] core::TaskState state() const noexcept { return m_metrics.state; }

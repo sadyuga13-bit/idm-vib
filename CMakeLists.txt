@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 
 project(IdmVibe
-    VERSION 1.0.0
-    DESCRIPTION "High-Performance Native C++20 Multi-Segment Download Manager with Cryptographic Anti-Crack Subsystem"
+    VERSION 2.0.0
+    DESCRIPTION "High-Performance Native C++20 Multi-Segment & YouTube Download Manager"
     LANGUAGES CXX
 )
 
@@ -38,6 +38,30 @@ set(PROJECT_SOURCES
     src/core/HashVerifier.cpp
     src/core/BatchExpander.h
     src/core/BatchExpander.cpp
+
+    # Config & Vault
+    src/config/AppConfig.h
+    src/config/AppConfig.cpp
+    src/config/SiteLoginVault.h
+    src/config/SiteLoginVault.cpp
+
+    # Global i18n & RTL/LTR Engine
+    src/i18n/TranslationsArEn.h
+    src/i18n/TranslationsGlobal.h
+    src/i18n/I18nManager.h
+    src/i18n/I18nManager.cpp
+
+    # System Integration, Tray, Antivirus & Power
+    src/system/SingleInstanceGuard.h
+    src/system/SingleInstanceGuard.cpp
+    src/system/WindowsSystemIntegration.h
+    src/system/WindowsSystemIntegration.cpp
+    src/system/AntivirusScanner.h
+    src/system/AntivirusScanner.cpp
+    src/system/PowerActionController.h
+    src/system/PowerActionController.cpp
+    src/system/TrayController.h
+    src/system/TrayController.cpp
 
     # Storage
     src/storage/DatabaseManager.h
@@ -108,6 +132,8 @@ set(PROJECT_SOURCES
     src/ui/widgets/InspectorDock.cpp
     src/ui/widgets/SegmentMapWidget.h
     src/ui/widgets/SegmentMapWidget.cpp
+    src/ui/widgets/SegmentBarWidget.h
+    src/ui/widgets/SegmentBarWidget.cpp
     src/ui/widgets/SpeedGraphWidget.h
     src/ui/widgets/SpeedGraphWidget.cpp
 
@@ -116,8 +142,26 @@ set(PROJECT_SOURCES
     src/ui/dialogs/AddDownloadDialog.cpp
     src/ui/dialogs/BatchDownloadDialog.h
     src/ui/dialogs/BatchDownloadDialog.cpp
-    src/ui/dialogs/SettingsDialog.h
-    src/ui/dialogs/SettingsDialog.cpp
+    src/ui/dialogs/DownloadProgressDialog.h
+    src/ui/dialogs/DownloadProgressDialog.cpp
+    src/ui/dialogs/DownloadCompleteDialog.h
+    src/ui/dialogs/DownloadCompleteDialog.cpp
+
+    # UI - Settings Pages & Dialog
+    src/ui/settings/GeneralSettingsPage.h
+    src/ui/settings/GeneralSettingsPage.cpp
+    src/ui/settings/FileTypesSettingsPage.h
+    src/ui/settings/FileTypesSettingsPage.cpp
+    src/ui/settings/SavePathsSettingsPage.h
+    src/ui/settings/SavePathsSettingsPage.cpp
+    src/ui/settings/ConnectionSettingsPage.h
+    src/ui/settings/ConnectionSettingsPage.cpp
+    src/ui/settings/ProxyAndLoginsPage.h
+    src/ui/settings/ProxyAndLoginsPage.cpp
+    src/ui/settings/CompletionAndAvPage.h
+    src/ui/settings/CompletionAndAvPage.cpp
+    src/ui/settings/SettingsDialog.h
+    src/ui/settings/SettingsDialog.cpp
 
     # UI - Security & Licensing
     src/ui/security/SerialKeyInputWidget.h
@@ -163,6 +207,7 @@ if(WIN32)
         crypt32
         bcrypt
         advapi32
+        ole32
     )
 endif()
 
