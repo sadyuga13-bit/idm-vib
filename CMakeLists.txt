@@ -30,6 +30,8 @@ set(PROJECT_SOURCES
 
     # Core
     src/core/Types.h
+    src/core/AppSettings.h
+    src/core/AppSettings.cpp
     src/core/SpeedLimiter.h
     src/core/SpeedLimiter.cpp
     src/core/HashVerifier.h
@@ -65,6 +67,8 @@ set(PROJECT_SOURCES
     src/network/RequestProfile.h
     src/network/UrlProber.h
     src/network/UrlProber.cpp
+    src/network/YoutubeExtractor.h
+    src/network/YoutubeExtractor.cpp
     src/network/SegmentWorker.h
     src/network/SegmentWorker.cpp
     src/network/DownloadTask.h
@@ -112,6 +116,8 @@ set(PROJECT_SOURCES
     src/ui/dialogs/AddDownloadDialog.cpp
     src/ui/dialogs/BatchDownloadDialog.h
     src/ui/dialogs/BatchDownloadDialog.cpp
+    src/ui/dialogs/SettingsDialog.h
+    src/ui/dialogs/SettingsDialog.cpp
 
     # UI - Security & Licensing
     src/ui/security/SerialKeyInputWidget.h

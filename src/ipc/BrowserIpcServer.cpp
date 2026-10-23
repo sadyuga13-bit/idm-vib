@@ -60,11 +60,20 @@ void BrowserIpcServer::processClientBuffer(QTcpSocket* socket) {
         writeHttpResponse(socket, 204, QByteArray());
         return;
     }
+    if (raw.startsWith("GET /ping") || raw.startsWith("GET /status")) {
+        writeHttpResponse(socket, 200, R"({"status":"online","app":"IdmVibe","version":"1.0.0"})");
+        return;
+    }
 
     QByteArray payload = raw;
     const int headerEnd = raw.indexOf("\r\n\r\n");
     if (headerEnd >= 0) {
         payload = raw.mid(headerEnd + 4);
+    }
+
+    if (payload.contains("\"action\":\"ping\"")) {
+        writeHttpResponse(socket, 200, R"({"status":"online","app":"IdmVibe","version":"1.0.0"})");
+        return;
     }
 
     const bool ok = parseAndEmitJsonPayload(payload.trimmed());
@@ -124,7 +133,8 @@ void BrowserIpcServer::writeHttpResponse(
 
     QByteArray response = statusLine;
     response += "Access-Control-Allow-Origin: *\r\n";
-    response += "Access-Control-Allow-Methods: POST, OPTIONS\r\n";
+    response += "Access-Control-Allow-Private-Network: true\r\n";
+    response += "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n";
     response += "Access-Control-Allow-Headers: Content-Type\r\n";
     response += "Content-Type: application/json\r\n";
     response += "Content-Length: " + QByteArray::number(body.size()) + "\r\n";

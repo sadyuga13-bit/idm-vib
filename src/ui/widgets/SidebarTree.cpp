@@ -28,9 +28,6 @@ SidebarTree::SidebarTree(QWidget* parent)
     setMinimumWidth(200);
     setMaximumWidth(270);
     setAttribute(Qt::WA_StyledBackground, true);
-    setStyleSheet(QStringLiteral(
-        "SidebarTree { background-color: #111317; border-right: 1px solid #222630; }"
-    ));
 
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -45,9 +42,6 @@ SidebarTree::SidebarTree(QWidget* parent)
     mainLayout->addWidget(m_tree, 1);
 
     auto* queuePanel = new QWidget(this);
-    queuePanel->setStyleSheet(QStringLiteral(
-        "background-color: #111317; border-top: 1px solid #222630;"
-    ));
     auto* qLayout = new QHBoxLayout(queuePanel);
     qLayout->setContentsMargins(10, 8, 10, 8);
     qLayout->setSpacing(6);
@@ -61,9 +55,6 @@ SidebarTree::SidebarTree(QWidget* parent)
     mainLayout->addWidget(queuePanel);
 
     auto* diskFooter = new QWidget(this);
-    diskFooter->setStyleSheet(QStringLiteral(
-        "background-color: #15181E; border-top: 1px solid #222630;"
-    ));
     auto* diskLayout = new QVBoxLayout(diskFooter);
     diskLayout->setContentsMargins(12, 10, 12, 10);
     diskLayout->setSpacing(5);
@@ -72,7 +63,7 @@ SidebarTree::SidebarTree(QWidget* parent)
     auto* driveIcon = new QLabel(diskFooter);
     driveIcon->setPixmap(IconRegistry::pixmap(IconId::HardDrive, 15, IconState::Normal));
     m_lblDrivePath = new QLabel(QStringLiteral("STORAGE VOLUME"), diskFooter);
-    m_lblDrivePath->setStyleSheet(QStringLiteral("color: #949BA6; font-size: 11px; font-weight: 600;"));
+    m_lblDrivePath->setStyleSheet(QStringLiteral("font-size: 11px; font-weight: 600;"));
     titleRow->addWidget(driveIcon);
     titleRow->addWidget(m_lblDrivePath, 1);
     diskLayout->addLayout(titleRow);
@@ -82,14 +73,13 @@ SidebarTree::SidebarTree(QWidget* parent)
     m_diskBar->setTextVisible(false);
     m_diskBar->setFixedHeight(4);
     m_diskBar->setStyleSheet(QStringLiteral(
-        "QProgressBar { background-color: #222630; border: none; border-radius: 2px; }"
+        "QProgressBar { background-color: rgba(128,128,128,45); border: none; border-radius: 2px; }"
         "QProgressBar::chunk { background-color: #3B82F6; border-radius: 2px; }"
     ));
     diskLayout->addWidget(m_diskBar);
 
     m_lblDiskNumbers = new QLabel(diskFooter);
     m_lblDiskNumbers->setFont(ThemeTokens::monoFont(false));
-    m_lblDiskNumbers->setStyleSheet(QStringLiteral("color: #636A75;"));
     diskLayout->addWidget(m_lblDiskNumbers);
 
     mainLayout->addWidget(diskFooter);

@@ -8,43 +8,58 @@
 namespace idm::ui::theme {
 
 struct ThemeTokens {
-    // Surface Hex Tokens
-    static constexpr const char* kBgWindowHex       = "#0B0C0E";
-    static constexpr const char* kBgPanelHex        = "#111317";
-    static constexpr const char* kBgToolbarHex      = "#15181E";
-    static constexpr const char* kBgRowAltHex       = "#13161B";
-    static constexpr const char* kBgHoverHex        = "#1A1E26";
-    static constexpr const char* kBgSelectedHex     = "#1E2638";
-    static constexpr const char* kBorderHairlineHex = "#222630";
+    inline static bool s_dayMode = false;
 
-    // Typography Hex Tokens
-    static constexpr const char* kTextPrimaryHex    = "#E6E8EC";
-    static constexpr const char* kTextSecondaryHex  = "#949BA6";
-    static constexpr const char* kTextTechnicalHex  = "#636A75";
+    [[nodiscard]] static bool isDayMode() noexcept { return s_dayMode; }
+    static void setDayMode(bool enabled) noexcept { s_dayMode = enabled; }
 
-    // Semantic Status Hex Tokens
-    static constexpr const char* kStatusActiveHex   = "#3B82F6";
-    static constexpr const char* kStatusDoneHex     = "#10B981";
-    static constexpr const char* kStatusPausedHex   = "#F59E0B";
-    static constexpr const char* kStatusErrorHex    = "#EF4444";
+    // Surface QColor Helpers (Adaptive Dark / Day Mode)
+    [[nodiscard]] static QColor bgWindow() {
+        return s_dayMode ? QColor(0xFF, 0xFF, 0xFF) : QColor(0x0B, 0x0C, 0x0E);
+    }
+    [[nodiscard]] static QColor bgPanel() {
+        return s_dayMode ? QColor(0xF1, 0xF5, 0xF9) : QColor(0x11, 0x13, 0x17);
+    }
+    [[nodiscard]] static QColor bgToolbar() {
+        return s_dayMode ? QColor(0xF8, 0xFA, 0xFC) : QColor(0x15, 0x18, 0x1E);
+    }
+    [[nodiscard]] static QColor bgRowAlt() {
+        return s_dayMode ? QColor(0xF4, 0xF7, 0xFA) : QColor(0x13, 0x16, 0x1B);
+    }
+    [[nodiscard]] static QColor bgHover() {
+        return s_dayMode ? QColor(0xE2, 0xE8, 0xF0) : QColor(0x1A, 0x1E, 0x26);
+    }
+    [[nodiscard]] static QColor bgSelected() {
+        return s_dayMode ? QColor(0xDB, 0xEA, 0xFE) : QColor(0x1E, 0x26, 0x38);
+    }
+    [[nodiscard]] static QColor borderHairline() {
+        return s_dayMode ? QColor(0xCB, 0xD5, 0xE1) : QColor(0x22, 0x26, 0x30);
+    }
 
-    // QColor Helpers
-    [[nodiscard]] static QColor bgWindow()       { return QColor(0x0B, 0x0C, 0x0E); }
-    [[nodiscard]] static QColor bgPanel()        { return QColor(0x11, 0x13, 0x17); }
-    [[nodiscard]] static QColor bgToolbar()      { return QColor(0x15, 0x18, 0x1E); }
-    [[nodiscard]] static QColor bgRowAlt()       { return QColor(0x13, 0x16, 0x1B); }
-    [[nodiscard]] static QColor bgHover()        { return QColor(0x1A, 0x1E, 0x26); }
-    [[nodiscard]] static QColor bgSelected()     { return QColor(0x1E, 0x26, 0x38); }
-    [[nodiscard]] static QColor borderHairline() { return QColor(0x22, 0x26, 0x30); }
+    // Typography QColor Helpers (Adaptive Dark / Day Mode)
+    [[nodiscard]] static QColor textPrimary() {
+        return s_dayMode ? QColor(0x0F, 0x17, 0x2A) : QColor(0xE6, 0xE8, 0xEC);
+    }
+    [[nodiscard]] static QColor textSecondary() {
+        return s_dayMode ? QColor(0x47, 0x55, 0x69) : QColor(0x94, 0x9B, 0xA6);
+    }
+    [[nodiscard]] static QColor textTechnical() {
+        return s_dayMode ? QColor(0x64, 0x74, 0x8B) : QColor(0x63, 0x6A, 0x75);
+    }
 
-    [[nodiscard]] static QColor textPrimary()    { return QColor(0xE6, 0xE8, 0xEC); }
-    [[nodiscard]] static QColor textSecondary()  { return QColor(0x94, 0x9B, 0xA6); }
-    [[nodiscard]] static QColor textTechnical()  { return QColor(0x63, 0x6A, 0x75); }
-
-    [[nodiscard]] static QColor statusActive()   { return QColor(0x3B, 0x82, 0xF6); }
-    [[nodiscard]] static QColor statusDone()     { return QColor(0x10, 0xB9, 0x81); }
-    [[nodiscard]] static QColor statusPaused()   { return QColor(0xF5, 0x9E, 0x0B); }
-    [[nodiscard]] static QColor statusError()    { return QColor(0xEF, 0x44, 0x44); }
+    // Semantic Status QColor Helpers
+    [[nodiscard]] static QColor statusActive() {
+        return s_dayMode ? QColor(0x25, 0x63, 0xEB) : QColor(0x3B, 0x82, 0xF6);
+    }
+    [[nodiscard]] static QColor statusDone() {
+        return s_dayMode ? QColor(0x05, 0x96, 0x69) : QColor(0x10, 0xB9, 0x81);
+    }
+    [[nodiscard]] static QColor statusPaused() {
+        return s_dayMode ? QColor(0xD9, 0x77, 0x06) : QColor(0xF5, 0x9E, 0x0B);
+    }
+    [[nodiscard]] static QColor statusError() {
+        return s_dayMode ? QColor(0xDC, 0x26, 0x26) : QColor(0xEF, 0x44, 0x44);
+    }
 
     // Metrics
     static constexpr int kRowHeightPx       = 32;
@@ -74,7 +89,7 @@ struct ThemeTokens {
         if (!QFontDatabase::hasFamily(font.family())) {
             font.setFamily(QStringLiteral("Consolas"));
         }
-        font.setPointSizeF(8.75); // ~11.5px at 96 DPI with crisp tabular alignment
+        font.setPointSizeF(8.75);
         font.setFixedPitch(true);
         font.setWeight(bold ? QFont::DemiBold : QFont::Normal);
         font.setStyleHint(QFont::Monospace);

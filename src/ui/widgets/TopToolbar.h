@@ -20,6 +20,8 @@ public:
     void setTaskActionsEnabled(bool canStart, bool canPause, bool canDelete);
     void updateAggregateSpeed(qint64 bytesPerSec, int activeCount);
     void updateLicenseBadge(idm::security::LicenseTier tier, const QString& labelText);
+    void setSpeedLimitValue(qint64 kibPerSec);
+    void refreshThemeIcons();
 
 signals:
     void addUrlClicked();
@@ -30,6 +32,8 @@ signals:
     void deleteSelectedClicked();
     void openFolderClicked();
     void verifyHashClicked();
+    void settingsClicked();
+    void themeToggleClicked();
     void licenseBadgeClicked();
     void globalSpeedLimitChanged(qint64 kibPerSec);
     void searchQueryChanged(const QString& text);
@@ -50,6 +54,8 @@ private:
     QToolButton* m_btnDelete{nullptr};
     QToolButton* m_btnOpenFolder{nullptr};
     QToolButton* m_btnVerifyHash{nullptr};
+    QToolButton* m_btnThemeToggle{nullptr};
+    QToolButton* m_btnSettings{nullptr};
 
     QSpinBox* m_spinSpeedCap{nullptr};
     QLineEdit* m_searchEdit{nullptr};

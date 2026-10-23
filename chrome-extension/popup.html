@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>IDM Vibe Bridge</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 14px;
+      width: 310px;
+      background-color: #0B0C0E;
+      color: #E6E8EC;
+      font-family: "Segoe UI", Inter, sans-serif;
+      font-size: 12px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #222630;
+      margin-bottom: 12px;
+    }
+    .title {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+    .badge {
+      font-family: Consolas, monospace;
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 3px 7px;
+      border-radius: 3px;
+      border: 1px solid #222630;
+    }
+    .badge.online {
+      color: #10B981;
+      border-color: #10B981;
+      background: rgba(16, 185, 129, 0.12);
+    }
+    .badge.offline {
+      color: #EF4444;
+      border-color: #EF4444;
+      background: rgba(239, 68, 68, 0.12);
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #111317;
+      border: 1px solid #222630;
+      border-radius: 4px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+    }
+    .btn {
+      width: 100%;
+      background-color: #2563EB;
+      color: #FFFFFF;
+      border: 1px solid #3B82F6;
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .btn:hover {
+      background-color: #1D4ED8;
+    }
+    .input-box {
+      width: 100%;
+      box-sizing: border-box;
+      background: #111317;
+      color: #E6E8EC;
+      border: 1px solid #222630;
+      border-radius: 4px;
+      padding: 6px 8px;
+      margin-bottom: 8px;
+      font-size: 11.5px;
+    }
+    .status-msg {
+      color: #949BA6;
+      font-size: 11px;
+      text-align: center;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="title">IDM VIBE BRIDGE</span>
+    <span id="statusBadge" class="badge offline">CHECKING...</span>
+  </div>
+
+  <div class="row">
+    <span>Auto-Intercept Downloads</span>
+    <input type="checkbox" id="chkIntercept" checked />
+  </div>
+
+  <button id="btnCurrentTab" class="btn">Download Current Tab / YouTube Video</button>
+
+  <input id="customUrlInput" class="input-box" type="text" placeholder="Paste any direct or YouTube URL..." />
+  <button id="btnSendCustom" class="btn" style="background-color:#15181E;border-color:#222630;">Send Custom URL to IDM Vibe</button>
+
+  <div id="statusMsg" class="status-msg">Local IPC: 127.0.0.1:16800</div>
+  <script src="popup.js"></script>
+</body>
+</html>

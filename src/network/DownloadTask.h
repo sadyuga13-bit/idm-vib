@@ -6,6 +6,7 @@
 #include "network/RequestProfile.h"
 #include "network/SegmentWorker.h"
 #include "network/UrlProber.h"
+#include "network/YoutubeExtractor.h"
 #include "security/SecurityTypes.h"
 #include "storage/DiskWriter.h"
 #include <QElapsedTimer>
@@ -50,6 +51,7 @@ signals:
     void logAdded(const QString& taskId, const QString& formattedLine);
 
 private:
+    void onYoutubeExtracted(const YoutubeVideoInfo& info);
     void onProbeCompleted(const ProbeResult& result);
     void initializeSegmentsAndStart(bool isResuming);
     void spawnWorkersFromMetrics();
@@ -69,6 +71,7 @@ private:
 
     QNetworkAccessManager m_nam;
     UrlProber m_prober;
+    YoutubeExtractor m_ytExtractor;
     storage::DiskWriter m_diskWriter;
     core::HashVerifier m_hashVerifier;
 

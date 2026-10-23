@@ -1,6 +1,7 @@
 #include "core/Types.h"
 #include "network/RequestProfile.h"
 #include "network/UrlProber.h"
+#include "network/YoutubeExtractor.h"
 #include "security/SecurityTypes.h"
 #include "ui/MainWindow.h"
 #include "ui/theme/AppStyleSheet.h"
@@ -18,6 +19,7 @@ int main(int argc, char* argv[]) {
     qRegisterMetaType<idm::core::FileCategory>("idm::core::FileCategory");
     qRegisterMetaType<idm::network::ProbeResult>("idm::network::ProbeResult");
     qRegisterMetaType<idm::network::RequestProfile>("idm::network::RequestProfile");
+    qRegisterMetaType<idm::network::YoutubeVideoInfo>("idm::network::YoutubeVideoInfo");
     qRegisterMetaType<idm::security::ActivationStep>("idm::security::ActivationStep");
     qRegisterMetaType<idm::security::LicenseCertificate>("idm::security::LicenseCertificate");
 

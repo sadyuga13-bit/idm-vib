@@ -1,7 +1,10 @@
 #include "ui/MainWindow.h"
+#include "core/AppSettings.h"
 #include "ui/dialogs/AddDownloadDialog.h"
 #include "ui/dialogs/BatchDownloadDialog.h"
+#include "ui/dialogs/SettingsDialog.h"
 #include "ui/security/LicenseDialog.h"
+#include "ui/theme/AppStyleSheet.h"
 #include "ui/theme/IconRegistry.h"
 #include "ui/theme/ThemeTokens.h"
 
@@ -15,25 +18,28 @@
 
 namespace idm::ui {
 
+using core::AppSettings;
+using theme::AppStyleSheet;
 using theme::IconId;
 using theme::IconRegistry;
 using theme::ThemeTokens;
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent) {
-    setWindowTitle(QStringLiteral("IDM Vibe - Native C++20 Multi-Segment Download Engine"));
+    setWindowTitle(QStringLiteral("IDM Vibe - Native C++20 Multi-Segment & YouTube Download Engine"));
     setWindowIcon(IconRegistry::icon(IconId::CategoryAll, 20));
-    resize(1260, 760);
+    resize(1280, 760);
 
     (void)m_dbManager.initialize();
     m_licenseCoordinator.initialize();
     m_scheduler = new network::QueueScheduler(
         &m_dbManager, &m_licenseCoordinator.capabilityToken(), this);
-    (void)m_ipcServer.startListening(16800);
+    (void)m_ipcServer.startListening(AppSettings::instance().ipcPort());
 
     setupUi();
     setupStatusBar();
     wireSignals();
+    applySavedPreferences();
 
     m_toolbar->updateLicenseBadge(
         m_licenseCoordinator.currentTier(), m_licenseCoordinator.statusBadgeText());
@@ -107,9 +113,9 @@ void MainWindow::setupStatusBar() {
     m_lblIpcStatus = new QLabel(this);
     m_lblIpcStatus->setFont(ThemeTokens::monoFont(false));
     m_lblIpcStatus->setText(m_ipcServer.isListening()
-        ? QStringLiteral("IPC 127.0.0.1:%1 [LISTENING]  |  SQLite WAL [READY]  |  HWID: %2")
+        ? QStringLiteral("CHROME IPC 127.0.0.1:%1 [LISTENING]  |  YOUTUBE INNERTUBE [READY]  |  HWID: %2")
               .arg(m_ipcServer.serverPort()).arg(m_licenseCoordinator.currentHwid().compositeFingerprint())
-        : QStringLiteral("IPC Port 16800 [UNAVAILABLE]  |  SQLite WAL [READY]"));
+        : QStringLiteral("CHROME IPC [UNAVAILABLE]  |  SQLite WAL [READY]"));
     sb->addWidget(m_lblIpcStatus, 1);
 
     m_lblActiveTasks = new QLabel(QStringLiteral("ACTIVE TASKS: 0"), this);
@@ -126,9 +132,12 @@ void MainWindow::wireSignals() {
     connect(m_toolbar, &widgets::TopToolbar::deleteSelectedClicked, this, [this]() { deleteSelectedTask(false); });
     connect(m_toolbar, &widgets::TopToolbar::openFolderClicked, this, &MainWindow::openSelectedTaskFolder);
     connect(m_toolbar, &widgets::TopToolbar::verifyHashClicked, this, &MainWindow::verifySelectedTaskHash);
+    connect(m_toolbar, &widgets::TopToolbar::themeToggleClicked, this, &MainWindow::toggleDayDarkTheme);
+    connect(m_toolbar, &widgets::TopToolbar::settingsClicked, this, &MainWindow::openSettingsDialog);
     connect(m_toolbar, &widgets::TopToolbar::licenseBadgeClicked, this, &MainWindow::openLicenseDialog);
     connect(m_toolbar, &widgets::TopToolbar::globalSpeedLimitChanged, this, [this](qint64 kib) {
         m_scheduler->globalSpeedLimiter()->setLimitKiBPerSec(kib);
+        AppSettings::instance().setGlobalSpeedLimitKiB(kib);
     });
     connect(m_toolbar, &widgets::TopToolbar::searchQueryChanged,
             m_tableModel, &models::DownloadTableModel::setSearchText);
@@ -153,9 +162,7 @@ void MainWindow::wireSignals() {
             this, &MainWindow::onTableContextMenu);
 
     connect(m_scheduler, &network::QueueScheduler::taskUpdated, this, [this](int, network::DownloadTask* t) {
-        if (t == selectedTask()) {
-            onSelectionChanged();
-        }
+        if (t == selectedTask()) { onSelectionChanged(); }
     });
     connect(m_scheduler, &network::QueueScheduler::aggregateSpeedUpdated, this,
         [this](qint64 speedBps, int activeCount) {
@@ -170,31 +177,44 @@ void MainWindow::wireSignals() {
         openAddDownloadDialog(url);
     });
     connect(&m_ipcServer, &ipc::BrowserIpcServer::browserDownloadIntercepted, this,
-        [this](const QString& url, const QString&, const network::RequestProfile& prof) {
+        [this](const QString& url, const QString& suggestedName, const network::RequestProfile& prof) {
             raise();
             activateWindow();
-            openAddDownloadDialog(url, prof);
+            openAddDownloadDialog(url, prof, suggestedName);
         });
 }
 
-void MainWindow::openAddDownloadDialog(const QString& prefillUrl, const network::RequestProfile& profile) {
-    dialogs::AddDownloadDialog dlg(prefillUrl, profile, this);
+void MainWindow::applySavedPreferences() {
+    const AppSettings& cfg = AppSettings::instance();
+    m_clipboardWatcher.setEnabled(cfg.clipboardMonitoringEnabled());
+    m_scheduler->globalSpeedLimiter()->setLimitKiBPerSec(cfg.globalSpeedLimitKiB());
+    m_toolbar->setSpeedLimitValue(cfg.globalSpeedLimitKiB());
+    m_toolbar->refreshThemeIcons();
+}
+void MainWindow::toggleDayDarkTheme() {
+    AppStyleSheet::setDayMode(!ThemeTokens::isDayMode());
+    m_toolbar->refreshThemeIcons();
+}
+void MainWindow::openSettingsDialog() {
+    dialogs::SettingsDialog dlg(this);
+    connect(&dlg, &dialogs::SettingsDialog::settingsApplied, this, &MainWindow::applySavedPreferences);
+    dlg.exec();
+    m_toolbar->refreshThemeIcons();
+}
+void MainWindow::openAddDownloadDialog(const QString& prefillUrl, const network::RequestProfile& profile, const QString& suggestedFileName) {
+    dialogs::AddDownloadDialog dlg(prefillUrl, profile, suggestedFileName, this);
     if (dlg.exec() == QDialog::Accepted) {
         network::DownloadTask* task = m_scheduler->addDownload(
             dlg.configuredMetrics(), dlg.configuredProfile(), dlg.startImmediately());
         m_sidebar->refreshDiskTelemetry(task->metrics().saveDirectory);
         const int row = m_tableModel->rowForTaskId(task->taskId());
-        if (row >= 0) {
-            m_tableView->selectRow(row);
-        }
+        if (row >= 0) { m_tableView->selectRow(row); }
     }
 }
-
 void MainWindow::openBatchDownloadDialog() {
     dialogs::BatchDownloadDialog dlg(this);
     if (dlg.exec() == QDialog::Accepted) {
-        const QStringList urls = dlg.expandedUrls();
-        for (const QString& u : urls) {
+        for (const QString& u : dlg.expandedUrls()) {
             core::TaskMetrics m;
             m.url = u;
             m.saveDirectory = dlg.saveDirectory();
@@ -205,7 +225,6 @@ void MainWindow::openBatchDownloadDialog() {
         m_scheduler->startQueue(dlg.selectedQueue());
     }
 }
-
 void MainWindow::openLicenseDialog() {
     security::LicenseDialog dlg(&m_licenseCoordinator, this);
     dlg.exec();
@@ -227,13 +246,9 @@ void MainWindow::onSelectionChanged() {
 
 void MainWindow::onTableContextMenu(const QPoint& pos) {
     const QModelIndex idx = m_tableView->indexAt(pos);
-    if (!idx.isValid()) {
-        return;
-    }
+    if (!idx.isValid()) { return; }
     m_tableView->selectRow(idx.row());
-    if (selectedTask() == nullptr) {
-        return;
-    }
+    if (selectedTask() == nullptr) { return; }
 
     QMenu menu(this);
     QAction* actResume = menu.addAction(IconRegistry::icon(IconId::StartPlay, 14), QStringLiteral("Resume Download"));
@@ -251,47 +266,32 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
     connect(actVerify, &QAction::triggered, this, &MainWindow::verifySelectedTaskHash);
     connect(actRemove, &QAction::triggered, this, [this]() { deleteSelectedTask(false); });
     connect(actDeleteDisk, &QAction::triggered, this, [this]() { deleteSelectedTask(true); });
-
     menu.exec(m_tableView->viewport()->mapToGlobal(pos));
 }
 
 void MainWindow::resumeSelectedTask() {
-    if (network::DownloadTask* t = selectedTask()) {
-        m_scheduler->startTask(t->taskId());
-    }
+    if (network::DownloadTask* t = selectedTask()) { m_scheduler->startTask(t->taskId()); }
 }
-
 void MainWindow::pauseSelectedTask() {
-    if (network::DownloadTask* t = selectedTask()) {
-        m_scheduler->pauseTask(t->taskId());
-    }
+    if (network::DownloadTask* t = selectedTask()) { m_scheduler->pauseTask(t->taskId()); }
 }
-
 void MainWindow::deleteSelectedTask(bool deleteDiskFile) {
     if (network::DownloadTask* t = selectedTask()) {
         m_scheduler->removeTask(t->taskId(), deleteDiskFile);
         onSelectionChanged();
     }
 }
-
 void MainWindow::openSelectedTaskFolder() {
     if (network::DownloadTask* t = selectedTask()) {
         QDesktopServices::openUrl(QUrl::fromLocalFile(t->metrics().saveDirectory));
     }
 }
-
 void MainWindow::verifySelectedTaskHash() {
-    if (network::DownloadTask* t = selectedTask()) {
-        t->runHashVerification();
-    }
+    if (network::DownloadTask* t = selectedTask()) { t->runHashVerification(); }
 }
-
 network::DownloadTask* MainWindow::selectedTask() const {
     const QModelIndexList sel = m_tableView->selectionModel()->selectedRows();
-    if (sel.isEmpty()) {
-        return nullptr;
-    }
-    return m_tableModel->taskAtRow(sel.first().row());
+    return sel.isEmpty() ? nullptr : m_tableModel->taskAtRow(sel.first().row());
 }
 
 } // namespace idm::ui

@@ -17,57 +17,24 @@ TopToolbar::TopToolbar(QWidget* parent)
     : QWidget(parent) {
     setFixedHeight(44);
     setAttribute(Qt::WA_StyledBackground, true);
-    setStyleSheet(QStringLiteral(
-        "TopToolbar { background-color: #15181E; border-bottom: 1px solid #222630; }"
-    ));
 
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(10, 6, 10, 6);
     layout->setSpacing(6);
 
-    m_btnAddUrl = createActionBtn(
-        QStringLiteral("Add URL"),
-        IconRegistry::icon(IconId::AddUrl, 16),
-        this
-    );
+    m_btnAddUrl = createActionBtn(QStringLiteral("Add URL"), IconRegistry::icon(IconId::AddUrl, 16), this);
     m_btnAddUrl->setObjectName(QStringLiteral("primaryActionBtn"));
     m_btnAddUrl->setIcon(QIcon(IconRegistry::pixmapColored(IconId::AddUrl, 16, Qt::white)));
 
-    m_btnBatch = createActionBtn(
-        QStringLiteral("Batch"),
-        IconRegistry::icon(IconId::BatchSequence, 16),
-        this
-    );
-    m_btnResume = createActionBtn(
-        QStringLiteral("Resume"),
-        IconRegistry::icon(IconId::StartPlay, 16),
-        this
-    );
-    m_btnPause = createActionBtn(
-        QStringLiteral("Pause"),
-        IconRegistry::icon(IconId::Pause, 16),
-        this
-    );
-    m_btnStopAll = createActionBtn(
-        QStringLiteral("Stop All"),
-        IconRegistry::icon(IconId::StopAll, 16),
-        this
-    );
-    m_btnDelete = createActionBtn(
-        QStringLiteral("Delete"),
-        IconRegistry::icon(IconId::TrashDelete, 16),
-        this
-    );
-    m_btnOpenFolder = createActionBtn(
-        QStringLiteral("Location"),
-        IconRegistry::icon(IconId::FolderOpen, 16),
-        this
-    );
-    m_btnVerifyHash = createActionBtn(
-        QStringLiteral("Verify"),
-        IconRegistry::icon(IconId::ShieldVerify, 16),
-        this
-    );
+    m_btnBatch = createActionBtn(QStringLiteral("Batch"), IconRegistry::icon(IconId::BatchSequence, 16), this);
+    m_btnResume = createActionBtn(QStringLiteral("Resume"), IconRegistry::icon(IconId::StartPlay, 16), this);
+    m_btnPause = createActionBtn(QStringLiteral("Pause"), IconRegistry::icon(IconId::Pause, 16), this);
+    m_btnStopAll = createActionBtn(QStringLiteral("Stop All"), IconRegistry::icon(IconId::StopAll, 16), this);
+    m_btnDelete = createActionBtn(QStringLiteral("Delete"), IconRegistry::icon(IconId::TrashDelete, 16), this);
+    m_btnOpenFolder = createActionBtn(QStringLiteral("Location"), IconRegistry::icon(IconId::FolderOpen, 16), this);
+    m_btnVerifyHash = createActionBtn(QStringLiteral("Verify"), IconRegistry::icon(IconId::ShieldVerify, 16), this);
+    m_btnThemeToggle = createActionBtn(QStringLiteral("Day Mode"), IconRegistry::icon(IconId::ThemeSun, 16), this);
+    m_btnSettings = createActionBtn(QStringLiteral("Settings"), IconRegistry::icon(IconId::SettingsGear, 16), this);
 
     layout->addWidget(m_btnAddUrl);
     layout->addWidget(m_btnBatch);
@@ -92,7 +59,7 @@ TopToolbar::TopToolbar(QWidget* parent)
     m_spinSpeedCap->setSpecialValueText(QStringLiteral("Unlimited"));
     m_spinSpeedCap->setSuffix(QStringLiteral(" KB/s"));
     m_spinSpeedCap->setFont(ThemeTokens::monoFont(false));
-    m_spinSpeedCap->setFixedWidth(115);
+    m_spinSpeedCap->setFixedWidth(110);
     layout->addWidget(m_spinSpeedCap);
 
     layout->addStretch(1);
@@ -104,7 +71,7 @@ TopToolbar::TopToolbar(QWidget* parent)
     m_searchEdit = new QLineEdit(this);
     m_searchEdit->setPlaceholderText(QStringLiteral("Filter tasks..."));
     m_searchEdit->setClearButtonEnabled(true);
-    m_searchEdit->setFixedWidth(175);
+    m_searchEdit->setFixedWidth(155);
     layout->addWidget(m_searchEdit);
 
     layout->addWidget(createVerticalSeparator(this));
@@ -112,10 +79,13 @@ TopToolbar::TopToolbar(QWidget* parent)
     m_lblLiveSpeed = new QLabel(QStringLiteral("0.0 KB/s"), this);
     m_lblLiveSpeed->setFont(ThemeTokens::monoFont(true));
     m_lblLiveSpeed->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    m_lblLiveSpeed->setFixedWidth(96);
+    m_lblLiveSpeed->setFixedWidth(92);
     m_lblLiveSpeed->setStyleSheet(QStringLiteral("color: #3B82F6; padding-right: 4px;"));
     layout->addWidget(m_lblLiveSpeed);
 
+    layout->addWidget(createVerticalSeparator(this));
+    layout->addWidget(m_btnThemeToggle);
+    layout->addWidget(m_btnSettings);
     layout->addWidget(createVerticalSeparator(this));
 
     m_licenseBadge = new security::LicenseStatusBadge(this);
@@ -129,6 +99,8 @@ TopToolbar::TopToolbar(QWidget* parent)
     connect(m_btnDelete, &QToolButton::clicked, this, &TopToolbar::deleteSelectedClicked);
     connect(m_btnOpenFolder, &QToolButton::clicked, this, &TopToolbar::openFolderClicked);
     connect(m_btnVerifyHash, &QToolButton::clicked, this, &TopToolbar::verifyHashClicked);
+    connect(m_btnThemeToggle, &QToolButton::clicked, this, &TopToolbar::themeToggleClicked);
+    connect(m_btnSettings, &QToolButton::clicked, this, &TopToolbar::settingsClicked);
     connect(m_licenseBadge, &security::LicenseStatusBadge::clicked, this, &TopToolbar::licenseBadgeClicked);
     connect(m_spinSpeedCap, &QSpinBox::valueChanged, this, [this](int val) {
         emit globalSpeedLimitChanged(static_cast<qint64>(val));
@@ -136,6 +108,7 @@ TopToolbar::TopToolbar(QWidget* parent)
     connect(m_searchEdit, &QLineEdit::textChanged, this, &TopToolbar::searchQueryChanged);
 
     setTaskActionsEnabled(false, false, false);
+    refreshThemeIcons();
 }
 
 void TopToolbar::setTaskActionsEnabled(bool canStart, bool canPause, bool canDelete) {
@@ -159,11 +132,30 @@ void TopToolbar::updateLicenseBadge(idm::security::LicenseTier tier, const QStri
     m_licenseBadge->updateBadgeState(tier, labelText);
 }
 
-QToolButton* TopToolbar::createActionBtn(
-    const QString& text,
-    const QIcon& icon,
-    QWidget* parent
-) {
+void TopToolbar::setSpeedLimitValue(qint64 kibPerSec) {
+    m_spinSpeedCap->blockSignals(true);
+    m_spinSpeedCap->setValue(static_cast<int>(kibPerSec));
+    m_spinSpeedCap->blockSignals(false);
+}
+
+void TopToolbar::refreshThemeIcons() {
+    m_btnBatch->setIcon(IconRegistry::icon(IconId::BatchSequence, 16));
+    m_btnResume->setIcon(IconRegistry::icon(IconId::StartPlay, 16));
+    m_btnPause->setIcon(IconRegistry::icon(IconId::Pause, 16));
+    m_btnStopAll->setIcon(IconRegistry::icon(IconId::StopAll, 16));
+    m_btnDelete->setIcon(IconRegistry::icon(IconId::TrashDelete, 16));
+    m_btnOpenFolder->setIcon(IconRegistry::icon(IconId::FolderOpen, 16));
+    m_btnVerifyHash->setIcon(IconRegistry::icon(IconId::ShieldVerify, 16));
+    m_btnSettings->setIcon(IconRegistry::icon(IconId::SettingsGear, 16));
+
+    const bool day = ThemeTokens::isDayMode();
+    m_btnThemeToggle->setText(day ? QStringLiteral("Dark") : QStringLiteral("Day"));
+    m_btnThemeToggle->setIcon(IconRegistry::icon(day ? IconId::ThemeMoon : IconId::ThemeSun, 16));
+    m_btnThemeToggle->setToolTip(day ? QStringLiteral("Switch to Dark Engineering Theme")
+                                     : QStringLiteral("Switch to Daylight Theme"));
+}
+
+QToolButton* TopToolbar::createActionBtn(const QString& text, const QIcon& icon, QWidget* parent) {
     auto* btn = new QToolButton(parent);
     btn->setText(text);
     btn->setIcon(icon);
@@ -178,7 +170,7 @@ QWidget* TopToolbar::createVerticalSeparator(QWidget* parent) {
     line->setFrameShape(QFrame::VLine);
     line->setFixedWidth(1);
     line->setFixedHeight(22);
-    line->setStyleSheet(QStringLiteral("background-color: #222630; border: none;"));
+    line->setStyleSheet(QStringLiteral("background-color: rgba(128,128,128,60); border: none;"));
     return line;
 }
 

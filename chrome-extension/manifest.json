@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "IDM Vibe - Download & YouTube Integration",
+  "version": "1.0.0",
+  "description": "High-speed multi-segment download interceptor and YouTube stream extractor bridge for IDM Vibe.",
+  "permissions": [
+    "downloads",
+    "contextMenus",
+    "storage",
+    "activeTab",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "http://127.0.0.1:16800/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "IDM Vibe Integration"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["youtube_content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

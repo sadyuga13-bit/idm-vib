@@ -97,9 +97,6 @@ InspectorDock::InspectorDock(QWidget* parent)
     m_logConsole = new QPlainTextEdit(m_tabs);
     m_logConsole->setReadOnly(true);
     m_logConsole->setFont(ThemeTokens::monoFont(false));
-    m_logConsole->setStyleSheet(QStringLiteral(
-        "QPlainTextEdit { background-color: #0B0C0E; color: #949BA6; border: none; padding: 8px; }"
-    ));
     m_tabs->addTab(
         m_logConsole,
         IconRegistry::icon(IconId::TerminalLog, 15),

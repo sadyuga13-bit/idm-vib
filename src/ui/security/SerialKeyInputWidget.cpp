@@ -136,7 +136,7 @@ void SerialKeyInputWidget::updateVisualValidationState() {
     const QString full = serialKey();
     m_checksumValid = (totalChars == 25) && CryptoEngine::validateSerialKeyChecksum(full);
 
-    QString borderColor = QStringLiteral("#222630");
+    QString borderColor = ThemeTokens::borderHairline().name();
     if (totalChars == 25) {
         borderColor = m_checksumValid
                           ? QStringLiteral("#10B981")
@@ -144,8 +144,7 @@ void SerialKeyInputWidget::updateVisualValidationState() {
     }
 
     const QString style = QStringLiteral(
-        "QLineEdit { background-color: #111317; color: #E6E8EC; "
-        "border: 1px solid %1; border-radius: 3px; padding: 4px; }"
+        "QLineEdit { border: 1px solid %1; border-radius: 3px; padding: 4px; }"
         "QLineEdit:focus { border: 1px solid #3B82F6; }"
     ).arg(borderColor);
 

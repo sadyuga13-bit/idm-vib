@@ -39,7 +39,12 @@ enum class IconId : int {
     KeySerial,
     CpuChip,
     BadgeVerified,
-    DeviceLaptop
+    DeviceLaptop,
+    SettingsGear,
+    ThemeSun,
+    ThemeMoon,
+    YoutubePlay,
+    BrowserExt
 };
 
 enum class IconState : int {

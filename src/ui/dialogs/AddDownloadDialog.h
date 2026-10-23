@@ -3,6 +3,7 @@
 #include "core/Types.h"
 #include "network/RequestProfile.h"
 #include "network/UrlProber.h"
+#include "network/YoutubeExtractor.h"
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
@@ -20,6 +21,7 @@ public:
     explicit AddDownloadDialog(
         const QString& initialUrl = QString(),
         const network::RequestProfile& initialProfile = network::RequestProfile{},
+        const QString& suggestedFileName = QString(),
         QWidget* parent = nullptr
     );
     ~AddDownloadDialog() override = default;
@@ -31,9 +33,14 @@ public:
 private:
     void triggerProbe();
     void onProbeCompleted(const network::ProbeResult& result);
+    void onYoutubeExtracted(const network::YoutubeVideoInfo& info);
+    void onYoutubeQualityChanged(int index);
     void onBrowseFolder();
 
     network::UrlProber m_prober;
+    network::YoutubeExtractor m_ytExtractor;
+    network::YoutubeVideoInfo m_ytInfo;
+    QString m_resolvedDirectUrl;
     qint64 m_probedBytes{0};
     bool m_probedResume{false};
     bool m_startImmediately{true};
@@ -41,6 +48,7 @@ private:
     QLineEdit* m_urlEdit{nullptr};
     QPushButton* m_btnProbe{nullptr};
     QLabel* m_lblProbeStatus{nullptr};
+    QComboBox* m_ytQualityCombo{nullptr};
 
     QLineEdit* m_fileNameEdit{nullptr};
     QLineEdit* m_saveDirEdit{nullptr};

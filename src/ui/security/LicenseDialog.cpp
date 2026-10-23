@@ -30,7 +30,7 @@ LicenseDialog::LicenseDialog(LicenseCoordinator* coordinator, QWidget* parent)
 
     auto* banner = new QWidget(this);
     banner->setStyleSheet(QStringLiteral(
-        "background-color: #15181E; border: 1px solid #222630; border-radius: 3px;"));
+        "border: 1px solid rgba(128,128,128,55); border-radius: 3px;"));
     auto* bannerLayout = new QHBoxLayout(banner);
     bannerLayout->setContentsMargins(12, 10, 12, 10);
 
@@ -43,7 +43,6 @@ LicenseDialog::LicenseDialog(LicenseCoordinator* coordinator, QWidget* parent)
     m_lblHeaderStatus->setFont(ThemeTokens::monoFont(true));
     m_lblHeaderHwid = new QLabel(banner);
     m_lblHeaderHwid->setFont(ThemeTokens::monoFont(false));
-    m_lblHeaderHwid->setStyleSheet(QStringLiteral("color: #949BA6;"));
     bannerTextCol->addWidget(m_lblHeaderStatus);
     bannerTextCol->addWidget(m_lblHeaderHwid);
     bannerLayout->addLayout(bannerTextCol, 1);
@@ -121,7 +120,7 @@ QWidget* LicenseDialog::buildSerialActivationTab() {
         lbl->setAlignment(Qt::AlignCenter);
         lbl->setFont(ThemeTokens::monoFont(true));
         lbl->setStyleSheet(QStringLiteral(
-            "background-color: #15181E; color: #636A75; border: 1px solid #222630; padding: 6px;"));
+            "background-color: rgba(128,128,128,25); color: #636A75; border: 1px solid rgba(128,128,128,55); padding: 6px;"));
         m_stepLabels[static_cast<size_t>(i)] = lbl;
         stepsRow->addWidget(lbl, 1);
     }
@@ -131,7 +130,7 @@ QWidget* LicenseDialog::buildSerialActivationTab() {
         QStringLiteral("Enter a 25-character serial key to begin TLS 1.3 SPKI-pinned activation."),
         pipeGroup);
     m_lblPipelineDetail->setFont(ThemeTokens::monoFont(false));
-    m_lblPipelineDetail->setStyleSheet(QStringLiteral("color: #949BA6; padding-top: 4px;"));
+    m_lblPipelineDetail->setStyleSheet(QStringLiteral("padding-top: 4px;"));
     pipeLayout->addWidget(m_lblPipelineDetail);
     layout->addWidget(pipeGroup);
 
@@ -240,7 +239,7 @@ void LicenseDialog::onActivationStepChanged(ActivationStep step, const QString& 
                 ? QStringLiteral("#EF4444") : QStringLiteral("#3B82F6");
         }
         m_stepLabels[static_cast<size_t>(i)]->setStyleSheet(
-            QStringLiteral("background-color: #15181E; color: %1; border: 1px solid %2; padding: 6px;")
+            QStringLiteral("background-color: rgba(128,128,128,25); color: %1; border: 1px solid %2; padding: 6px;")
                 .arg(color, border));
     }
 }

@@ -27,13 +27,17 @@ private:
     void setupUi();
     void setupStatusBar();
     void wireSignals();
+    void applySavedPreferences();
 
     void openAddDownloadDialog(
         const QString& prefillUrl = QString(),
-        const network::RequestProfile& profile = network::RequestProfile{}
+        const network::RequestProfile& profile = network::RequestProfile{},
+        const QString& suggestedFileName = QString()
     );
     void openBatchDownloadDialog();
+    void openSettingsDialog();
     void openLicenseDialog();
+    void toggleDayDarkTheme();
 
     void onSelectionChanged();
     void onTableContextMenu(const QPoint& pos);

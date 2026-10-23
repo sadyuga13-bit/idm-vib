@@ -1,4 +1,5 @@
 #include "ipc/ClipboardWatcher.h"
+#include "network/YoutubeExtractor.h"
 #include "storage/CategoryRouter.h"
 
 #include <QClipboard>
@@ -61,7 +62,8 @@ void ClipboardWatcher::onClipboardChanged() {
     }
 
     const QString urlPath = url.path();
-    if (!storage::CategoryRouter::matchesExtensionList(urlPath, m_extensions)) {
+    const bool isYoutube = network::YoutubeExtractor::isYoutubeUrl(url);
+    if (!isYoutube && !storage::CategoryRouter::matchesExtensionList(urlPath, m_extensions)) {
         return;
     }
 

@@ -28,7 +28,6 @@ SeatManagerWidget::SeatManagerWidget(QWidget* parent)
     devIcon->setPixmap(IconRegistry::pixmap(IconId::DeviceLaptop, 16, IconState::Normal));
     m_lblUsageSummary = new QLabel(QStringLiteral("ACTIVE HARDWARE SEATS: 1 / 3 USED"), this);
     m_lblUsageSummary->setFont(ThemeTokens::monoFont(true));
-    m_lblUsageSummary->setStyleSheet(QStringLiteral("color: #E6E8EC;"));
 
     m_btnRevoke = new QPushButton(QStringLiteral("Deactivate Selected Seat"), this);
     m_btnRevoke->setIcon(IconRegistry::icon(IconId::TrashDelete, 14));
