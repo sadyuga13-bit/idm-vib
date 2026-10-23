@@ -1,0 +1,50 @@
+# Build directories
+build/
+out/
+bin/
+cmake-build-*/
+
+# CMake artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Visual Studio / IDE
+.vs/
+.vscode/
+.idea/
+*.sln
+*.slnx
+*.vcxproj
+*.vcxproj.*
+*.user
+*.suo
+*.aps
+*.ncb
+*.opendb
+*.db
+*.VC.db
+
+# Compiled binaries & Qt autogen
+*_autogen/
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+*.exe
+*.app
+
+# Runtime & Vault artifacts
+*.part
+*.vault
+*.dpapi
+*.hwid_req
+*.idm_lic
+
+*.log
