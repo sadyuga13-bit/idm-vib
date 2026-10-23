@@ -210,7 +210,7 @@ void DownloadProgressDialog::refreshTelemetry() {
         .arg(pct, 0, 'f', 1).arg(core::FormatUtils::formatSpeed(m.speedBytesPerSec), m.fileName));
 
     m_lblUrl->setText(m.url.left(80));
-    m_lblStatus->setText(core::FormatUtils::formatState(m.state));
+    m_lblStatus->setText(core::FormatUtils::stateToString(m.state));
     m_lblFileSize->setText(core::FormatUtils::formatBytes(m.totalBytes));
     m_lblDownloaded->setText(QStringLiteral("%1 (%2%)")
         .arg(core::FormatUtils::formatBytes(m.downloadedBytes)).arg(pct, 0, 'f', 1));
