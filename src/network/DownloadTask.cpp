@@ -1,6 +1,5 @@
 #include "network/DownloadTask.h"
 #include "storage/CategoryRouter.h"
-
 #include <QDateTime>
 #include <QFile>
 #include <QUrl>
@@ -18,24 +17,26 @@ DownloadTask::DownloadTask(const core::TaskMetrics& initialMetrics, const Reques
     connect(&m_ytExtractor, &YoutubeExtractor::extractionCompleted, this, &DownloadTask::onYoutubeExtracted);
     connect(&m_prober, &UrlProber::probeCompleted, this, &DownloadTask::onProbeCompleted);
     connect(&m_metricsTimer, &QTimer::timeout, this, &DownloadTask::onTickMetrics);
+    connect(&m_hashVerifier, &core::HashVerifier::verificationProgress, this, [this](const QString&, int pct) {
+        if (pct % 20 == 0) { appendLog(QStringLiteral("[Verifier] Integrity check progress: %1%").arg(pct)); }
+        emit metricsUpdated(m_metrics.taskId);
+    });
     connect(&m_hashVerifier, &core::HashVerifier::verificationFinished, this,
         [this](const QString&, const QString& sha256, const QString& md5, bool matched, const QString& err) {
             if (!err.isEmpty() || !matched) {
-                m_metrics.errorMessage = err.isEmpty()
-                    ? QStringLiteral("Checksum mismatch against expected hash.") : err;
+                m_metrics.errorMessage = err.isEmpty() ? QStringLiteral("Checksum mismatch against expected hash.") : err;
                 appendLog(QStringLiteral("[VerifyError] %1").arg(m_metrics.errorMessage));
                 setState(core::TaskState::Failed);
                 return;
             }
             m_metrics.computedSha256 = sha256;
             m_metrics.computedMd5 = md5;
-            appendLog(QStringLiteral("[Integrity] SHA-256: %1 | MD5: %2").arg(sha256, md5));
+            if (m_metrics.totalBytes > 0) { m_metrics.downloadedBytes = m_metrics.totalBytes; }
+            appendLog(QStringLiteral("[Integrity Verified 100%] SHA-256: %1 | MD5: %2").arg(sha256, md5));
             setState(core::TaskState::Completed);
         });
 }
-
 DownloadTask::~DownloadTask() { pause(); }
-
 void DownloadTask::start() {
     if (m_metrics.state == core::TaskState::Active || m_metrics.state == core::TaskState::Probing ||
         m_metrics.state == core::TaskState::Verifying || m_metrics.state == core::TaskState::Completed) { return; }
@@ -75,8 +76,8 @@ void DownloadTask::cancel(bool deleteFiles) {
 void DownloadTask::runHashVerification() {
     if (!QFile::exists(m_metrics.fullSavePath())) { return; }
     setState(core::TaskState::Verifying);
-    appendLog(QStringLiteral("[Verifier] Computing SHA-256 & MD5 for %1").arg(m_metrics.fileName));
-    m_hashVerifier.verifyFileAsync(m_metrics.taskId, m_metrics.fullSavePath(), m_metrics.expectedHash);
+    appendLog(QStringLiteral("[Verifier] Verifying file size, binary header & SHA-256/MD5 for %1").arg(m_metrics.fileName));
+    m_hashVerifier.verifyFileAsync(m_metrics.taskId, m_metrics.fullSavePath(), m_metrics.expectedHash, m_metrics.totalBytes);
 }
 
 void DownloadTask::setTaskSpeedLimitKiB(qint64 kibPerSec) { m_taskLimiter.setLimitKiBPerSec(kibPerSec); }
@@ -198,7 +199,6 @@ void DownloadTask::spawnWorkersFromMetrics() {
 }
 
 void DownloadTask::onSegmentBytesWritten(int, qint64 deltaBytes) {
-    m_metrics.downloadedBytes += deltaBytes;
     m_bytesInSpeedWindow += deltaBytes;
 }
 
@@ -225,37 +225,44 @@ void DownloadTask::onSegmentFinished(int segmentId) {
             return;
         }
     }
+    for (SegmentWorker* w : m_workers) {
+        if (!w->isRangeFullyDownloaded() && w->state() != core::SegmentState::Downloading && w->state() != core::SegmentState::Connecting) {
+            w->start(QUrl(m_metrics.url), m_profile, &m_nam);
+            onTickMetrics();
+            return;
+        }
+    }
     const bool allDone = std::all_of(m_workers.cbegin(), m_workers.cend(), [](const SegmentWorker* w) {
-        return w->state() == core::SegmentState::Completed;
+        return w->state() == core::SegmentState::Completed && w->isRangeFullyDownloaded();
     });
     onTickMetrics();
     if (allDone) { finalizeDownload(); }
 }
-
 void DownloadTask::onSegmentFailed(int segmentId, const QString& errorMessage) {
     m_metricsTimer.stop();
-    for (SegmentWorker* w : m_workers) {
-        if (w->segmentId() != segmentId) { w->pause(); }
-    }
+    for (SegmentWorker* w : m_workers) { if (w->segmentId() != segmentId) { w->pause(); } }
     m_diskWriter.flush();
-    m_metrics.speedBytesPerSec = 0;
-    m_metrics.etaSeconds = -1;
+    m_metrics.speedBytesPerSec = 0; m_metrics.etaSeconds = -1;
     m_metrics.errorMessage = QStringLiteral("Segment #%1: %2").arg(segmentId).arg(errorMessage);
     appendLog(QStringLiteral("[Error] %1").arg(m_metrics.errorMessage));
     onTickMetrics();
     setState(core::TaskState::Failed);
 }
-
 void DownloadTask::onTickMetrics() {
     m_metrics.segments.clear();
+    qint64 sumDownloaded = 0;
     for (const SegmentWorker* w : m_workers) {
-        m_metrics.segments.append(w->snapshot());
+        const core::SegmentInfo snap = w->snapshot();
+        m_metrics.segments.append(snap);
+        sumDownloaded += std::max<qint64>(0, snap.currentOffset - snap.startOffset);
+    }
+    if (!m_workers.isEmpty()) {
+        m_metrics.downloadedBytes = (m_metrics.totalBytes > 0) ? std::min(sumDownloaded, m_metrics.totalBytes) : sumDownloaded;
     }
     const qint64 elapsedMs = m_speedWindowTimer.elapsed();
     if (elapsedMs >= 400) {
         m_metrics.speedBytesPerSec = (m_bytesInSpeedWindow * 1000) / std::max<qint64>(1, elapsedMs);
-        m_bytesInSpeedWindow = 0;
-        m_speedWindowTimer.restart();
+        m_bytesInSpeedWindow = 0; m_speedWindowTimer.restart();
     }
     m_metrics.etaSeconds = (m_metrics.speedBytesPerSec > 0 && m_metrics.totalBytes > m_metrics.downloadedBytes)
         ? ((m_metrics.totalBytes - m_metrics.downloadedBytes) / m_metrics.speedBytesPerSec) : -1;
@@ -264,6 +271,7 @@ void DownloadTask::onTickMetrics() {
 
 void DownloadTask::finalizeDownload() {
     m_metricsTimer.stop();
+    onTickMetrics();
     m_metrics.speedBytesPerSec = 0;
     m_metrics.etaSeconds = 0;
     if (m_metrics.totalBytes <= 0) { m_metrics.totalBytes = m_metrics.downloadedBytes; }
@@ -274,7 +282,7 @@ void DownloadTask::finalizeDownload() {
         setState(core::TaskState::Failed);
         return;
     }
-    appendLog(QStringLiteral("[DiskWriter] Finalized file %1").arg(m_metrics.fullSavePath()));
+    appendLog(QStringLiteral("[DiskWriter] Finalized file %1 (%2 bytes)").arg(m_metrics.fullSavePath()).arg(m_metrics.totalBytes));
     runHashVerification();
 }
 void DownloadTask::setState(core::TaskState newState) {

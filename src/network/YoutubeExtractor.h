@@ -12,6 +12,7 @@ namespace idm::network {
 
 struct YoutubeFormat {
     int itag{0};
+    int height{0};
     QString qualityTag;
     QString displayLabel;
     QString directUrl;
@@ -27,6 +28,7 @@ struct YoutubeVideoInfo {
     QString videoId;
     QString title;
     QString author;
+    QString activeClientName;
     QString errorMessage;
     QList<YoutubeFormat> formats;
 };
@@ -45,23 +47,27 @@ public:
         const QString& qualityTag,
         const QString& extension
     );
-    [[nodiscard]] static QString locateYtDlpBinary();
 
     void extractVideoInfo(const QUrl& url);
     void abort();
     [[nodiscard]] bool isExtracting() const noexcept { return m_extracting; }
 
-    void downloadYtDlpBinary(const QString& targetPath);
-
 signals:
     void extractionCompleted(const idm::network::YoutubeVideoInfo& info);
-    void ytDlpDownloadProgress(qint64 received, qint64 total);
-    void ytDlpDownloadFinished(bool success, const QString& message);
 
 private:
-    void requestInnertubePlayer(const QString& videoId, const QString& visitorData);
-    void parseInnertubeResponse(const QString& videoId, const QByteArray& rawJson);
-    bool tryFallbackYtDlpProcess(const QString& videoId);
+    void requestInnertubeClientStage(
+        const QString& videoId,
+        const QString& visitorData,
+        int stageIndex
+    );
+    bool parseInnertubeResponse(
+        const QString& videoId,
+        const QByteArray& rawJson,
+        const QString& clientLabel,
+        const QString& clientUserAgent,
+        YoutubeVideoInfo* outInfo
+    );
 
     QNetworkAccessManager m_nam;
     QPointer<QNetworkReply> m_activeReply;

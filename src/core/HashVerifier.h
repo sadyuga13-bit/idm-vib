@@ -17,7 +17,8 @@ public:
     void verifyFileAsync(
         const QString& taskId,
         const QString& filePath,
-        const QString& expectedHash = QString()
+        const QString& expectedHash = QString(),
+        qint64 expectedSizeBytes = 0
     );
 
     void cancel();

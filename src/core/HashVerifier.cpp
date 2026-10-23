@@ -3,6 +3,7 @@
 #include <QByteArray>
 #include <QCryptographicHash>
 #include <QFile>
+#include <QFileInfo>
 #include <QMetaObject>
 
 namespace idm::core {
@@ -18,7 +19,8 @@ HashVerifier::~HashVerifier() {
 void HashVerifier::verifyFileAsync(
     const QString& taskId,
     const QString& filePath,
-    const QString& expectedHash
+    const QString& expectedHash,
+    qint64 expectedSizeBytes
 ) {
     cancel();
     cleanupThread();
@@ -26,29 +28,58 @@ void HashVerifier::verifyFileAsync(
     m_cancelRequested.store(false, std::memory_order_relaxed);
     m_running.store(true, std::memory_order_relaxed);
 
-    m_workerThread = QThread::create([this, taskId, filePath, expectedHash]() {
+    m_workerThread = QThread::create([this, taskId, filePath, expectedHash, expectedSizeBytes]() {
         QFile file(filePath);
         if (!file.open(QIODevice::ReadOnly)) {
             const QString err = file.errorString();
             m_running.store(false, std::memory_order_relaxed);
-            QMetaObject::invokeMethod(
-                this,
-                [this, taskId, err]() {
-                    emit verificationFinished(taskId, QString(), QString(), false, err);
-                },
-                Qt::QueuedConnection
-            );
+            QMetaObject::invokeMethod(this, [this, taskId, err]() {
+                emit verificationFinished(taskId, QString(), QString(), false, err);
+            }, Qt::QueuedConnection);
             return;
         }
 
         const qint64 totalSize = file.size();
+        if (expectedSizeBytes > 0 && totalSize != expectedSizeBytes) {
+            file.close();
+            const QString err = QStringLiteral("Integrity Error: Disk size (%1 bytes) != Expected size (%2 bytes)")
+                                    .arg(totalSize).arg(expectedSizeBytes);
+            m_running.store(false, std::memory_order_relaxed);
+            QMetaObject::invokeMethod(this, [this, taskId, err]() {
+                emit verificationFinished(taskId, QString(), QString(), false, err);
+            }, Qt::QueuedConnection);
+            return;
+        }
+
+        const QString ext = QFileInfo(filePath).suffix().toLower();
+        if (totalSize >= 64) {
+            const QByteArray head = file.peek(64);
+            if ((ext == QStringLiteral("exe") || ext == QStringLiteral("dll")) && !head.startsWith("MZ")) {
+                file.close();
+                const QString err = QStringLiteral("Corrupted PE executable header (missing MZ signature).");
+                m_running.store(false, std::memory_order_relaxed);
+                QMetaObject::invokeMethod(this, [this, taskId, err]() {
+                    emit verificationFinished(taskId, QString(), QString(), false, err);
+                }, Qt::QueuedConnection);
+                return;
+            }
+            if ((ext == QStringLiteral("zip") || ext == QStringLiteral("apk")) && !head.startsWith("PK")) {
+                file.close();
+                const QString err = QStringLiteral("Corrupted ZIP archive header (missing PK signature).");
+                m_running.store(false, std::memory_order_relaxed);
+                QMetaObject::invokeMethod(this, [this, taskId, err]() {
+                    emit verificationFinished(taskId, QString(), QString(), false, err);
+                }, Qt::QueuedConnection);
+                return;
+            }
+        }
+
         qint64 bytesReadTotal = 0;
         int lastReportedPercent = -1;
 
         QCryptographicHash sha256(QCryptographicHash::Sha256);
         QCryptographicHash md5(QCryptographicHash::Md5);
-
-        QByteArray buffer(256 * 1024, Qt::Uninitialized);
+        QByteArray buffer(1024 * 1024, Qt::Uninitialized);
 
         while (!file.atEnd()) {
             if (m_cancelRequested.load(std::memory_order_relaxed)) {
@@ -62,13 +93,9 @@ void HashVerifier::verifyFileAsync(
                 const QString err = file.errorString();
                 file.close();
                 m_running.store(false, std::memory_order_relaxed);
-                QMetaObject::invokeMethod(
-                    this,
-                    [this, taskId, err]() {
-                        emit verificationFinished(taskId, QString(), QString(), false, err);
-                    },
-                    Qt::QueuedConnection
-                );
+                QMetaObject::invokeMethod(this, [this, taskId, err]() {
+                    emit verificationFinished(taskId, QString(), QString(), false, err);
+                }, Qt::QueuedConnection);
                 return;
             }
 
@@ -81,11 +108,9 @@ void HashVerifier::verifyFileAsync(
                 const int pct = static_cast<int>((bytesReadTotal * 100) / totalSize);
                 if (pct != lastReportedPercent) {
                     lastReportedPercent = pct;
-                    QMetaObject::invokeMethod(
-                        this,
-                        [this, taskId, pct]() { emit verificationProgress(taskId, pct); },
-                        Qt::QueuedConnection
-                    );
+                    QMetaObject::invokeMethod(this, [this, taskId, pct]() {
+                        emit verificationProgress(taskId, pct);
+                    }, Qt::QueuedConnection);
                 }
             }
         }
@@ -102,13 +127,9 @@ void HashVerifier::verifyFileAsync(
         }
 
         m_running.store(false, std::memory_order_relaxed);
-        QMetaObject::invokeMethod(
-            this,
-            [this, taskId, sha256Hex, md5Hex, matched]() {
-                emit verificationFinished(taskId, sha256Hex, md5Hex, matched, QString());
-            },
-            Qt::QueuedConnection
-        );
+        QMetaObject::invokeMethod(this, [this, taskId, sha256Hex, md5Hex, matched]() {
+            emit verificationFinished(taskId, sha256Hex, md5Hex, matched, QString());
+        }, Qt::QueuedConnection);
     });
 
     m_workerThread->start();

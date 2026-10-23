@@ -57,8 +57,8 @@ void LicenseCoordinator::initialize() {
 
     m_activeCert = LicenseCertificate{};
     m_activeCert.tier = LicenseTier::Trial;
-    m_activeCert.maxAllowedThreads = 2;
-    rebuildCapabilityToken(false);
+    m_activeCert.maxAllowedThreads = (m_remainingTrialDays > 0) ? 32 : 2;
+    rebuildCapabilityToken(m_remainingTrialDays > 0);
     emit licenseStateChanged();
 }
 
@@ -145,8 +145,8 @@ void LicenseCoordinator::deactivateLocalLicense() {
     SecureVault::purgeVaultFile();
     m_activeCert = LicenseCertificate{};
     m_activeCert.tier = LicenseTier::Trial;
-    m_activeCert.maxAllowedThreads = 2;
-    rebuildCapabilityToken(false);
+    m_activeCert.maxAllowedThreads = (m_remainingTrialDays > 0) ? 32 : 2;
+    rebuildCapabilityToken(m_remainingTrialDays > 0);
     emit licenseStateChanged();
 }
 
@@ -221,7 +221,7 @@ void LicenseCoordinator::rebuildCapabilityToken(bool validLicenseSignature) {
     RuntimeCapabilityToken tok{};
     tok.integrityEpochTag = m_integrityGuard.computeLiveIntegrityEpochTag();
 
-    if (!validLicenseSignature || m_activeCert.signatureEd25519.size() != 64) {
+    if (!validLicenseSignature) {
         const QByteArray trialKey = CryptoEngine::hkdfSha256(
             m_currentHwid.compositeFingerprint().toLatin1(),
             QByteArrayLiteral("TRIAL-SALT"),

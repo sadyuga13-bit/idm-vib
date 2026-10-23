@@ -1,5 +1,6 @@
 #include "ui/widgets/TopToolbar.h"
 #include "core/Types.h"
+#include "i18n/I18nManager.h"
 #include "ui/theme/IconRegistry.h"
 #include "ui/theme/ThemeTokens.h"
 
@@ -8,6 +9,7 @@
 
 namespace idm::ui::widgets {
 
+using i18n::trText;
 using theme::IconId;
 using theme::IconRegistry;
 using theme::IconState;
@@ -15,26 +17,26 @@ using theme::ThemeTokens;
 
 TopToolbar::TopToolbar(QWidget* parent)
     : QWidget(parent) {
-    setFixedHeight(44);
+    setFixedHeight(50);
     setAttribute(Qt::WA_StyledBackground, true);
 
     auto* layout = new QHBoxLayout(this);
-    layout->setContentsMargins(10, 6, 10, 6);
+    layout->setContentsMargins(12, 7, 12, 7);
     layout->setSpacing(6);
 
-    m_btnAddUrl = createActionBtn(QStringLiteral("Add URL"), IconRegistry::icon(IconId::AddUrl, 16), this);
+    m_btnAddUrl = createActionBtn(trText(QStringLiteral("tb.add_url"), QStringLiteral("Add URL")), IconRegistry::icon(IconId::AddUrl, 16), this);
     m_btnAddUrl->setObjectName(QStringLiteral("primaryActionBtn"));
     m_btnAddUrl->setIcon(QIcon(IconRegistry::pixmapColored(IconId::AddUrl, 16, Qt::white)));
 
-    m_btnBatch = createActionBtn(QStringLiteral("Batch"), IconRegistry::icon(IconId::BatchSequence, 16), this);
-    m_btnResume = createActionBtn(QStringLiteral("Resume"), IconRegistry::icon(IconId::StartPlay, 16), this);
-    m_btnPause = createActionBtn(QStringLiteral("Pause"), IconRegistry::icon(IconId::Pause, 16), this);
-    m_btnStopAll = createActionBtn(QStringLiteral("Stop All"), IconRegistry::icon(IconId::StopAll, 16), this);
-    m_btnDelete = createActionBtn(QStringLiteral("Delete"), IconRegistry::icon(IconId::TrashDelete, 16), this);
-    m_btnOpenFolder = createActionBtn(QStringLiteral("Location"), IconRegistry::icon(IconId::FolderOpen, 16), this);
-    m_btnVerifyHash = createActionBtn(QStringLiteral("Verify"), IconRegistry::icon(IconId::ShieldVerify, 16), this);
-    m_btnThemeToggle = createActionBtn(QStringLiteral("Day Mode"), IconRegistry::icon(IconId::ThemeSun, 16), this);
-    m_btnSettings = createActionBtn(QStringLiteral("Settings"), IconRegistry::icon(IconId::SettingsGear, 16), this);
+    m_btnBatch = createActionBtn(trText(QStringLiteral("tb.batch"), QStringLiteral("Batch")), IconRegistry::icon(IconId::BatchSequence, 16), this);
+    m_btnResume = createActionBtn(trText(QStringLiteral("tb.resume"), QStringLiteral("Resume")), IconRegistry::icon(IconId::StartPlay, 16), this);
+    m_btnPause = createActionBtn(trText(QStringLiteral("tb.pause"), QStringLiteral("Pause")), IconRegistry::icon(IconId::Pause, 16), this);
+    m_btnStopAll = createActionBtn(trText(QStringLiteral("tb.stop_all"), QStringLiteral("Stop All")), IconRegistry::icon(IconId::StopAll, 16), this);
+    m_btnDelete = createActionBtn(trText(QStringLiteral("tb.delete"), QStringLiteral("Delete")), IconRegistry::icon(IconId::TrashDelete, 16), this);
+    m_btnOpenFolder = createActionBtn(trText(QStringLiteral("tb.location"), QStringLiteral("Location")), IconRegistry::icon(IconId::FolderOpen, 16), this);
+    m_btnVerifyHash = createActionBtn(trText(QStringLiteral("tb.verify"), QStringLiteral("Verify")), IconRegistry::icon(IconId::ShieldVerify, 16), this);
+    m_btnThemeToggle = createActionBtn(trText(QStringLiteral("tb.day_mode"), QStringLiteral("Day")), IconRegistry::icon(IconId::ThemeSun, 16), this);
+    m_btnSettings = createActionBtn(trText(QStringLiteral("tb.settings"), QStringLiteral("Settings")), IconRegistry::icon(IconId::SettingsGear, 16), this);
 
     layout->addWidget(m_btnAddUrl);
     layout->addWidget(m_btnBatch);
@@ -69,10 +71,12 @@ TopToolbar::TopToolbar(QWidget* parent)
     layout->addWidget(searchIconLbl);
 
     m_searchEdit = new QLineEdit(this);
-    m_searchEdit->setPlaceholderText(QStringLiteral("Filter tasks..."));
+    m_searchEdit->setPlaceholderText(trText(QStringLiteral("tb.filter_placeholder"), QStringLiteral("Filter tasks...")));
     m_searchEdit->setClearButtonEnabled(true);
-    m_searchEdit->setFixedWidth(155);
-    layout->addWidget(m_searchEdit);
+    m_searchEdit->setMinimumWidth(140);
+    m_searchEdit->setMaximumWidth(280);
+    m_searchEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    layout->addWidget(m_searchEdit, 1);
 
     layout->addWidget(createVerticalSeparator(this));
 
@@ -148,8 +152,20 @@ void TopToolbar::refreshThemeIcons() {
     m_btnVerifyHash->setIcon(IconRegistry::icon(IconId::ShieldVerify, 16));
     m_btnSettings->setIcon(IconRegistry::icon(IconId::SettingsGear, 16));
 
+    m_btnAddUrl->setText(trText(QStringLiteral("tb.add_url"), QStringLiteral("Add URL")));
+    m_btnBatch->setText(trText(QStringLiteral("tb.batch"), QStringLiteral("Batch")));
+    m_btnResume->setText(trText(QStringLiteral("tb.resume"), QStringLiteral("Resume")));
+    m_btnPause->setText(trText(QStringLiteral("tb.pause"), QStringLiteral("Pause")));
+    m_btnStopAll->setText(trText(QStringLiteral("tb.stop_all"), QStringLiteral("Stop All")));
+    m_btnDelete->setText(trText(QStringLiteral("tb.delete"), QStringLiteral("Delete")));
+    m_btnOpenFolder->setText(trText(QStringLiteral("tb.location"), QStringLiteral("Location")));
+    m_btnVerifyHash->setText(trText(QStringLiteral("tb.verify"), QStringLiteral("Verify")));
+    m_btnSettings->setText(trText(QStringLiteral("tb.settings"), QStringLiteral("Settings")));
+    m_searchEdit->setPlaceholderText(trText(QStringLiteral("tb.filter_placeholder"), QStringLiteral("Filter tasks...")));
+
     const bool day = ThemeTokens::isDayMode();
-    m_btnThemeToggle->setText(day ? QStringLiteral("Dark") : QStringLiteral("Day"));
+    m_btnThemeToggle->setText(day ? trText(QStringLiteral("tb.dark_mode"), QStringLiteral("Dark"))
+                                  : trText(QStringLiteral("tb.day_mode"), QStringLiteral("Day")));
     m_btnThemeToggle->setIcon(IconRegistry::icon(day ? IconId::ThemeMoon : IconId::ThemeSun, 16));
     m_btnThemeToggle->setToolTip(day ? QStringLiteral("Switch to Dark Engineering Theme")
                                      : QStringLiteral("Switch to Daylight Theme"));

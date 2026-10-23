@@ -1,4 +1,5 @@
 #include "ui/theme/AppStyleSheet.h"
+#include "config/AppConfig.h"
 #include "core/AppSettings.h"
 #include "ui/theme/ThemeTokens.h"
 
@@ -10,8 +11,9 @@ namespace idm::ui::theme {
 
 void AppStyleSheet::setDayMode(bool dayMode) {
     ThemeTokens::setDayMode(dayMode);
+    config::AppConfig::instance().setDayMode(dayMode);
     core::AppSettings::instance().setDayMode(dayMode);
-    core::AppSettings::instance().sync();
+    config::AppConfig::instance().sync();
     if (auto* app = qobject_cast<QApplication*>(QApplication::instance())) {
         applyToApplication(*app);
         for (QWidget* w : QApplication::allWidgets()) {
@@ -21,7 +23,7 @@ void AppStyleSheet::setDayMode(bool dayMode) {
 }
 
 void AppStyleSheet::applyToApplication(QApplication& app) {
-    ThemeTokens::setDayMode(core::AppSettings::instance().isDayMode());
+    ThemeTokens::setDayMode(config::AppConfig::instance().isDayMode());
     app.setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
     app.setFont(ThemeTokens::uiFont(false));
 
@@ -58,7 +60,7 @@ QString AppStyleSheet::buildGlobalStyleSheet() {
 
     return QStringLiteral(R"(
         QMainWindow, QDialog { background-color: %1; color: %8; }
-        QWidget { color: %8; font-size: 12px; selection-background-color: %6; selection-color: %8; }
+        QWidget { color: %8; font-size: 13px; selection-background-color: %6; selection-color: %8; }
         TopToolbar { background-color: %3; border-bottom: 1px solid %7; }
         SidebarTree { background-color: %2; border-right: 1px solid %7; }
         QSplitter::handle { background-color: %7; }
@@ -67,52 +69,60 @@ QString AppStyleSheet::buildGlobalStyleSheet() {
         QHeaderView { background-color: %3; border: none; border-bottom: 1px solid %7; }
         QHeaderView::section {
             background-color: %3; color: %9; font-weight: 600; font-size: 11px;
-            padding: 4px 8px; border: none; border-right: 1px solid %7; border-bottom: 1px solid %7;
+            padding: 6px 10px; border: none; border-right: 1px solid %7; border-bottom: 1px solid %7;
         }
         QHeaderView::section:hover { background-color: %5; color: %8; }
         QTableView, QTableWidget {
             background-color: %1; alternate-background-color: %4;
             border: none; gridline-color: %7; outline: none;
         }
-        QTreeWidget { background-color: %2; border: none; border-right: 1px solid %7; outline: none; padding: 4px 0px; }
-        QTreeWidget::item { height: 26px; padding: 2px 6px; color: %9; border-left: 2px solid transparent; }
-        QTreeWidget::item:hover { background-color: %5; color: %8; }
-        QTreeWidget::item:selected { background-color: %6; color: %8; border-left: 2px solid %11; }
+        QTreeWidget, QListWidget {
+            background-color: %2; border: 1px solid %7; border-radius: 6px; outline: none; padding: 6px 4px;
+        }
+        QTreeWidget::item, QListWidget::item {
+            height: 30px; padding: 3px 8px; border-radius: 5px; color: %9;
+        }
+        QTreeWidget::item:hover, QListWidget::item:hover { background-color: %5; color: %8; }
+        QTreeWidget::item:selected, QListWidget::item:selected {
+            background-color: %6; color: %8; font-weight: 600;
+        }
         QTabWidget::pane { background-color: %2; border-top: 1px solid %7; }
         QTabBar::tab {
-            background-color: %3; color: %9; padding: 6px 14px; border: none;
+            background-color: %3; color: %9; padding: 8px 16px; border: none;
             border-right: 1px solid %7; border-bottom: 2px solid transparent; font-weight: 600;
         }
         QTabBar::tab:hover { background-color: %5; color: %8; }
         QTabBar::tab:selected { background-color: %2; color: %8; border-bottom: 2px solid %11; }
         QLineEdit, QSpinBox, QComboBox, QTimeEdit, QPlainTextEdit {
-            background-color: %2; color: %8; border: 1px solid %7; border-radius: 3px; padding: 4px 8px;
+            background-color: %2; color: %8; border: 1px solid %7; border-radius: 6px; padding: 5px 10px;
         }
         QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QTimeEdit:focus, QPlainTextEdit:focus {
             border: 1px solid %11;
         }
         QPushButton, QToolButton {
-            background-color: %3; color: %8; border: 1px solid %7; border-radius: 3px; padding: 4px 10px;
+            background-color: %3; color: %8; border: 1px solid %7; border-radius: 6px; padding: 5px 12px; font-weight: 500;
         }
-        QPushButton:hover, QToolButton:hover { background-color: %5; border-color: %9; }
+        QPushButton:hover, QToolButton:hover { background-color: %5; border-color: %11; }
         QPushButton:pressed, QToolButton:pressed { background-color: %6; border-color: %11; }
         QPushButton:disabled, QToolButton:disabled { background-color: %2; color: %10; border-color: %7; }
-        QPushButton#primaryActionBtn, QToolButton#primaryActionBtn {
+        QPushButton#primaryActionBtn, QToolButton#primaryActionBtn, QPushButton#PrimaryButton {
             background-color: %11; color: #FFFFFF; border: 1px solid #1D4ED8; font-weight: 600;
         }
-        QPushButton#primaryActionBtn:hover, QToolButton#primaryActionBtn:hover { background-color: #1D4ED8; }
+        QPushButton#primaryActionBtn:hover, QToolButton#primaryActionBtn:hover, QPushButton#PrimaryButton:hover {
+            background-color: #1D4ED8;
+        }
         QScrollBar:vertical { background: %1; width: 8px; margin: 0px; }
         QScrollBar::handle:vertical { background: %7; min-height: 24px; border-radius: 4px; }
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
         QScrollBar:horizontal { background: %1; height: 8px; margin: 0px; }
         QScrollBar::handle:horizontal { background: %7; min-width: 24px; border-radius: 4px; }
         QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0px; }
-        QStatusBar { background-color: %3; color: %9; border-top: 1px solid %7; }
+        QStatusBar { background-color: %3; color: %9; border-top: 1px solid %7; padding: 2px 8px; }
         QGroupBox {
-            border: 1px solid %7; border-radius: 3px; margin-top: 8px;
-            padding-top: 8px; font-weight: 600; color: %9;
+            border: 1px solid %7; border-radius: 8px; margin-top: 10px;
+            padding-top: 10px; font-weight: 600; color: %8;
         }
-        QGroupBox::title { subcontrol-origin: margin; left: 8px; padding: 0 4px; }
+        QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 6px; }
     )").arg(bgWin, bgPan, bgBar, bgAlt, bgHov, bgSel, border, txtPri, txtSec)
        .arg(txtTec, accent);
 }

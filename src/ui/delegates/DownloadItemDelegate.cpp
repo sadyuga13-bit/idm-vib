@@ -4,6 +4,7 @@
 #include "ui/theme/ThemeTokens.h"
 
 #include <QFontMetrics>
+#include <QLinearGradient>
 #include <QPainter>
 #include <algorithm>
 
@@ -36,7 +37,7 @@ void DownloadItemDelegate::paint(
 
     paintRowBackground(painter, option, index);
 
-    const QRect contentRect = option.rect.adjusted(10, 0, -10, -1);
+    const QRect contentRect = option.rect.adjusted(12, 0, -12, -1);
     const int col = index.column();
 
     if (col == DownloadTableModel::ColFileName) {
@@ -48,7 +49,7 @@ void DownloadItemDelegate::paint(
     } else {
         const QFont font = (col == DownloadTableModel::ColQueue)
                                ? ThemeTokens::uiFont(false)
-                               : ThemeTokens::monoFont(false);
+                               : ThemeTokens::monoFont(col == DownloadTableModel::ColSpeed);
         painter->setFont(font);
 
         if (col == DownloadTableModel::ColSpeed) {
@@ -95,11 +96,13 @@ void DownloadItemDelegate::paintRowBackground(
     if (isSelected && index.column() == 0) {
         const QRect accentBar(
             option.rect.left(),
-            option.rect.top(),
+            option.rect.top() + 4,
             ThemeTokens::kSelectionBarWidth,
-            option.rect.height()
+            option.rect.height() - 8
         );
-        painter->fillRect(accentBar, ThemeTokens::statusActive());
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(ThemeTokens::statusActive());
+        painter->drawRoundedRect(accentBar, 1.5, 1.5);
     }
 
     painter->setPen(ThemeTokens::borderHairline());
@@ -123,17 +126,26 @@ void DownloadItemDelegate::paintFileNameCell(
     if (state == core::TaskState::Completed) icoState = IconState::Success;
     if (state == core::TaskState::Failed)    icoState = IconState::Danger;
 
+    const QColor tint = semanticColorForState(state);
+    QColor badgeBg = tint;
+    badgeBg.setAlpha(ThemeTokens::isDayMode() ? 24 : 32);
+
+    const int badgeSize = 26;
+    const int badgeY = rect.top() + (rect.height() - badgeSize) / 2;
+    const QRectF badgeRect(rect.left(), badgeY, badgeSize, badgeSize);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(badgeBg);
+    painter->drawRoundedRect(badgeRect, 6.0, 6.0);
+
     const QPixmap ico = IconRegistry::pixmap(
         IconRegistry::iconForCategory(category),
         16,
         icoState
     );
+    painter->drawPixmap(rect.left() + 5, badgeY + 5, 16, 16, ico);
 
-    const int iconY = rect.top() + (rect.height() - 16) / 2;
-    painter->drawPixmap(rect.left(), iconY, 16, 16, ico);
-
-    const QRect textRect(rect.left() + 24, rect.top(), rect.width() - 24, rect.height());
-    painter->setFont(ThemeTokens::uiFont(false));
+    const QRect textRect(rect.left() + 34, rect.top(), rect.width() - 34, rect.height());
+    painter->setFont(ThemeTokens::uiFont(true));
     painter->setPen(ThemeTokens::textPrimary());
 
     const QFontMetrics fm(painter->font());
@@ -156,28 +168,31 @@ void DownloadItemDelegate::paintProgressCell(
         index.data(DownloadTableModel::RoleTaskState).toInt()
     );
 
-    const QFont mono = ThemeTokens::monoFont(false);
-    painter->setFont(mono);
+    painter->setFont(ThemeTokens::monoFont(true));
     painter->setPen(ThemeTokens::textSecondary());
 
-    const int labelWidth = 48;
+    const int labelWidth = 52;
     const QRect labelRect(rect.right() - labelWidth + 1, rect.top(), labelWidth, rect.height());
     const QString pctText = QStringLiteral("%1%").arg(pct, 0, 'f', 1);
     painter->drawText(labelRect, Qt::AlignRight | Qt::AlignVCenter, pctText);
 
-    const int barWidth = std::max(16, rect.width() - labelWidth - 8);
+    const int barWidth = std::max(24, rect.width() - labelWidth - 10);
     const int barY = rect.top() + (rect.height() - ThemeTokens::kProgressBarHeight) / 2;
     const QRectF trackRect(rect.left(), barY, barWidth, ThemeTokens::kProgressBarHeight);
 
     painter->setPen(Qt::NoPen);
     painter->setBrush(ThemeTokens::borderHairline());
-    painter->drawRoundedRect(trackRect, 2.0, 2.0);
+    painter->drawRoundedRect(trackRect, 3.5, 3.5);
 
     if (pct > 0.1) {
-        const double fillW = ( static_cast<double>(barWidth) * pct ) / 100.0;
-        const QRectF fillRect(rect.left(), barY, std::max(2.0, fillW), ThemeTokens::kProgressBarHeight);
-        painter->setBrush(semanticColorForState(state));
-        painter->drawRoundedRect(fillRect, 2.0, 2.0);
+        const double fillW = (static_cast<double>(barWidth) * pct) / 100.0;
+        const QRectF fillRect(rect.left(), barY, std::max(4.0, fillW), ThemeTokens::kProgressBarHeight);
+        const QColor baseCol = semanticColorForState(state);
+        QLinearGradient grad(fillRect.topLeft(), fillRect.topRight());
+        grad.setColorAt(0.0, baseCol);
+        grad.setColorAt(1.0, baseCol.lighter(118));
+        painter->setBrush(grad);
+        painter->drawRoundedRect(fillRect, 3.5, 3.5);
     }
 }
 
@@ -190,21 +205,34 @@ void DownloadItemDelegate::paintStatusCell(
         index.data(DownloadTableModel::RoleTaskState).toInt()
     );
     const QColor statusColor = semanticColorForState(state);
+    const QString label = index.data(Qt::DisplayRole).toString();
+
+    const QFont f = ThemeTokens::uiFont(true);
+    painter->setFont(f);
+    const QFontMetrics fm(f);
+    const int pillW = std::min(rect.width(), fm.horizontalAdvance(label) + 26);
+    const int pillH = 24;
+    const int pillY = rect.top() + (rect.height() - pillH) / 2;
+    const QRectF pillRect(rect.left(), pillY, pillW, pillH);
+
+    QColor pillBg = statusColor;
+    pillBg.setAlpha(ThemeTokens::isDayMode() ? 24 : 34);
+    QColor pillBorder = statusColor;
+    pillBorder.setAlpha(95);
+
+    painter->setPen(QPen(pillBorder, 1.0));
+    painter->setBrush(pillBg);
+    painter->drawRoundedRect(pillRect, 12.0, 12.0);
 
     const int dotSize = 6;
-    const int dotY = rect.top() + (rect.height() - dotSize) / 2;
+    const int dotY = pillY + (pillH - dotSize) / 2;
     painter->setPen(Qt::NoPen);
     painter->setBrush(statusColor);
-    painter->drawEllipse(QRectF(rect.left(), dotY, dotSize, dotSize));
+    painter->drawEllipse(QRectF(rect.left() + 8, dotY, dotSize, dotSize));
 
-    const QRect textRect(rect.left() + 12, rect.top(), rect.width() - 12, rect.height());
-    painter->setFont(ThemeTokens::uiFont(true));
+    const QRect textRect(rect.left() + 19, pillY, pillW - 24, pillH);
     painter->setPen(statusColor);
-    painter->drawText(
-        textRect,
-        Qt::AlignLeft | Qt::AlignVCenter,
-        index.data(Qt::DisplayRole).toString()
-    );
+    painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, label);
 }
 
 QColor DownloadItemDelegate::semanticColorForState(core::TaskState state) noexcept {

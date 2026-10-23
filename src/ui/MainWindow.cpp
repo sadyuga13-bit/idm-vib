@@ -102,19 +102,21 @@ void MainWindow::setupUi() {
     QHeaderView* hh = m_tableView->horizontalHeader();
     hh->setFixedHeight(ThemeTokens::kHeaderHeightPx);
     hh->setHighlightSections(false);
-    hh->setStretchLastSection(true);
-    const int widths[] = {260, 95, 95, 165, 110, 105, 80, 75};
-    for (int col = 0; col < 8; ++col) { m_tableView->setColumnWidth(col, widths[col]); }
+    hh->setStretchLastSection(false);
+    hh->setMinimumSectionSize(75);
+    const int widths[] = {320, 100, 105, 185, 130, 110, 85, 80, 105};
+    for (int col = 0; col < 9; ++col) { m_tableView->setColumnWidth(col, widths[col]); }
+    hh->setSectionResizeMode(models::DownloadTableModel::ColFileName, QHeaderView::Stretch);
     rightVertSplitter->addWidget(m_tableView);
-
     m_inspectorDock = new widgets::InspectorDock(rightVertSplitter);
     rightVertSplitter->addWidget(m_inspectorDock);
     rightVertSplitter->setStretchFactor(0, 3);
     rightVertSplitter->setStretchFactor(1, 2);
-
+    rightVertSplitter->setSizes({460, 240});
     mainHorizSplitter->addWidget(rightVertSplitter);
     mainHorizSplitter->setStretchFactor(0, 0);
     mainHorizSplitter->setStretchFactor(1, 1);
+    mainHorizSplitter->setSizes({230, 1050});
     rootLayout->addWidget(mainHorizSplitter, 1);
     setCentralWidget(central);
 }
