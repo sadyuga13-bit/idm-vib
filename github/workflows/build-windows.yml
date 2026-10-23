@@ -1,0 +1,49 @@
+name: Build Windows x64 (C++20 + Qt 6)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: MSVC C++20 Release Build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Qt 6.8 (MSVC x64)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          modules: 'qtbase qtsvg'
+          cache: true
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake -B build -A x64 -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build IdmVibe Executable
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --parallel
+
+      - name: Package Qt Runtime Dependencies (windeployqt)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item build\Release\IdmVibe.exe dist\
+          windeployqt --release --no-translations --no-opengl-sw dist\IdmVibe.exe
+
+      - name: Upload Ready-to-Run Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: IdmVibe-Windows-x64
+          path: dist/
+          retention-days: 30
