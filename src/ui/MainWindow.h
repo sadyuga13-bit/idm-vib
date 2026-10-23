@@ -46,7 +46,7 @@ private:
     [[nodiscard]] network::DownloadTask* selectedTask() const;
 
     storage::DatabaseManager m_dbManager;
-    security::LicenseCoordinator m_licenseCoordinator;
+    idm::security::LicenseCoordinator m_licenseCoordinator;
     network::QueueScheduler* m_scheduler{nullptr};
     ipc::BrowserIpcServer m_ipcServer;
     ipc::ClipboardWatcher m_clipboardWatcher;

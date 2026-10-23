@@ -133,7 +133,7 @@ void MainWindow::wireSignals() {
     connect(m_toolbar, &widgets::TopToolbar::searchQueryChanged,
             m_tableModel, &models::DownloadTableModel::setSearchText);
 
-    connect(&m_licenseCoordinator, &security::LicenseCoordinator::licenseStateChanged, this, [this]() {
+    connect(&m_licenseCoordinator, &idm::security::LicenseCoordinator::licenseStateChanged, this, [this]() {
         m_toolbar->updateLicenseBadge(
             m_licenseCoordinator.currentTier(), m_licenseCoordinator.statusBadgeText());
     });

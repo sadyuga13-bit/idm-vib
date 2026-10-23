@@ -180,7 +180,7 @@ QString UrlProber::extractFileName(
 
         if (candidate.isEmpty()) {
             static const QRegularExpression kQuotedRx(
-                QStringLiteral(R"(filename\s*=\s*"([^"]+)")")
+                QStringLiteral(R"rx(filename\s*=\s*"([^"]+)")rx")
             );
             const QRegularExpressionMatch mQuoted = kQuotedRx.match(disp);
             if (mQuoted.hasMatch()) {
