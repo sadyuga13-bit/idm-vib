@@ -1,4 +1,5 @@
 #include "ui/models/DownloadTableModel.h"
+#include "i18n/I18nManager.h"
 #include "ui/theme/ThemeTokens.h"
 
 namespace idm::ui::models {
@@ -10,6 +11,10 @@ DownloadTableModel::DownloadTableModel(
     : QAbstractTableModel(parent)
     , m_scheduler(scheduler) {
     rebuildVisibleList();
+
+    connect(&i18n::I18nManager::instance(), &i18n::I18nManager::languageChanged, this, [this]() {
+        emit headerDataChanged(Qt::Horizontal, 0, ColumnCount - 1);
+    });
 
     connect(m_scheduler, &network::QueueScheduler::taskAdded, this,
         [this](int, network::DownloadTask*) { rebuildVisibleList(); });
@@ -133,16 +138,17 @@ QVariant DownloadTableModel::headerData(
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole) {
         return {};
     }
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
     switch (section) {
-        case ColFileName:   return QStringLiteral("File Name");
-        case ColSize:       return QStringLiteral("Total Size");
-        case ColDownloaded: return QStringLiteral("Downloaded");
-        case ColProgress:   return QStringLiteral("Progress");
-        case ColStatus:     return QStringLiteral("Status");
-        case ColSpeed:      return QStringLiteral("Transfer Rate");
-        case ColEta:        return QStringLiteral("ETA");
-        case ColSegments:   return QStringLiteral("Segments");
-        case ColQueue:      return QStringLiteral("Queue");
+        case ColFileName:   return ar ? QStringLiteral("اسم الملف") : QStringLiteral("File Name");
+        case ColSize:       return ar ? QStringLiteral("الحجم الكلي") : QStringLiteral("Total Size");
+        case ColDownloaded: return ar ? QStringLiteral("المحمل") : QStringLiteral("Downloaded");
+        case ColProgress:   return ar ? QStringLiteral("التقدم") : QStringLiteral("Progress");
+        case ColStatus:     return ar ? QStringLiteral("الحالة") : QStringLiteral("Status");
+        case ColSpeed:      return ar ? QStringLiteral("السرعة") : QStringLiteral("Transfer Rate");
+        case ColEta:        return ar ? QStringLiteral("المتبقي") : QStringLiteral("ETA");
+        case ColSegments:   return ar ? QStringLiteral("المسارات") : QStringLiteral("Segments");
+        case ColQueue:      return ar ? QStringLiteral("الطابور") : QStringLiteral("Queue");
         default:            return {};
     }
 }

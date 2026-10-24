@@ -36,7 +36,55 @@ IconId IconRegistry::iconForCategory(core::FileCategory category) noexcept {
     return IconId::CategoryGeneric;
 }
 
+QColor IconRegistry::semanticColorForIcon(IconId id) noexcept {
+    switch (id) {
+        case IconId::AddUrl:           return QColor(0x10, 0xB9, 0x81); // Emerald
+        case IconId::BatchSequence:    return QColor(0x8B, 0x5C, 0xF6); // Violet
+        case IconId::StartPlay:        return QColor(0x22, 0xC5, 0x5E); // Green
+        case IconId::Pause:            return QColor(0xF5, 0x9E, 0x0B); // Amber
+        case IconId::StopSquare:
+        case IconId::StopAll:
+        case IconId::TrashDelete:
+        case IconId::YoutubePlay:
+        case IconId::CategoryVideo:    return QColor(0xEF, 0x44, 0x44); // Crimson
+        case IconId::SchedulerClock:
+        case IconId::FolderOpen:
+        case IconId::CategoryArchive:
+        case IconId::ThemeSun:         return QColor(0xF5, 0x9E, 0x0B); // Gold/Amber
+        case IconId::SpeedGauge:
+        case IconId::ShieldVerify:
+        case IconId::BadgeVerified:
+        case IconId::CategoryAudio:    return QColor(0x06, 0xB6, 0xD4); // Cyan
+        case IconId::SearchLens:
+        case IconId::NetworkGlobe:
+        case IconId::SettingsGear:
+        case IconId::CategoryAll:
+        case IconId::CategoryDocument:
+        case IconId::DeviceLaptop:     return QColor(0x3B, 0x82, 0xF6); // Royal Blue
+        case IconId::TerminalLog:
+        case IconId::CpuThreads:
+        case IconId::CpuChip:
+        case IconId::CategoryApp:
+        case IconId::BrowserExt:
+        case IconId::QueueNight:
+        case IconId::ThemeMoon:        return QColor(0x63, 0x66, 0xF1); // Indigo
+        case IconId::HardDrive:
+        case IconId::QueueMain:        return QColor(0x14, 0xB8, 0xA6); // Teal
+        case IconId::CategoryImage:    return QColor(0xEC, 0x48, 0x99); // Pink
+        case IconId::LockClosed:
+        case IconId::KeySerial:        return QColor(0xEA, 0xB3, 0x08); // Yellow Gold
+        case IconId::CategoryGeneric:  return QColor(0x64, 0x74, 0x8B); // Slate
+    }
+    return ThemeTokens::accentPrimary();
+}
+
 QPixmap IconRegistry::pixmap(IconId id, int sizePx, IconState state) {
+    if (state == IconState::Normal) {
+        return pixmapColored(id, sizePx, semanticColorForIcon(id));
+    }
+    if (state == IconState::Hover) {
+        return pixmapColored(id, sizePx, semanticColorForIcon(id).lighter(120));
+    }
     return pixmapColored(id, sizePx, colorForState(state));
 }
 

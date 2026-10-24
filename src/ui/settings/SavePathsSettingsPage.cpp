@@ -1,5 +1,6 @@
 #include "ui/settings/SavePathsSettingsPage.h"
 #include "config/AppConfig.h"
+#include "i18n/I18nManager.h"
 #include "storage/CategoryRouter.h"
 #include "ui/theme/IconRegistry.h"
 #include "ui/theme/ThemeTokens.h"
@@ -10,6 +11,7 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QStorageInfo>
+#include <QTimer>
 #include <QVBoxLayout>
 
 namespace idm::ui::settings {
@@ -23,11 +25,13 @@ using theme::ThemeTokens;
 SavePathsSettingsPage::SavePathsSettingsPage(QWidget* parent)
     : QWidget(parent) {
     const AppConfig& cfg = AppConfig::instance();
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(14, 14, 14, 14);
     root->setSpacing(12);
 
-    auto* catBox = new QGroupBox(QStringLiteral("Smart Category Directories & Volume Free Space"), this);
+    auto* catBox = new QGroupBox(ar ? QStringLiteral("مجلدات التصنيف الذكي والمساحة الحرة")
+                                    : QStringLiteral("Smart Category Directories & Volume Free Space"), this);
     auto* catForm = new QFormLayout(catBox);
     catForm->setSpacing(10);
 
@@ -49,35 +53,37 @@ SavePathsSettingsPage::SavePathsSettingsPage(QWidget* parent)
             CategoryRouter::categoryDisplayName(c),
             static_cast<int>(c));
     }
-    catForm->addRow(QStringLiteral("Category:"), m_categoryCombo);
+    catForm->addRow(ar ? QStringLiteral("التصنيف:") : QStringLiteral("Category:"), m_categoryCombo);
 
     auto* pathRow = new QHBoxLayout();
     m_catPathEdit = new QLineEdit(catBox);
-    auto* btnBrowseCat = new QPushButton(QStringLiteral("Browse"), catBox);
+    auto* btnBrowseCat = new QPushButton(ar ? QStringLiteral("استعراض") : QStringLiteral("Browse"), catBox);
     btnBrowseCat->setIcon(IconRegistry::icon(IconId::FolderOpen, 14));
     pathRow->addWidget(m_catPathEdit, 1);
     pathRow->addWidget(btnBrowseCat);
-    catForm->addRow(QStringLiteral("Category Path:"), pathRow);
+    catForm->addRow(ar ? QStringLiteral("مسار الحفظ:") : QStringLiteral("Category Path:"), pathRow);
 
     m_lblFreeSpace = new QLabel(catBox);
     m_lblFreeSpace->setFont(ThemeTokens::monoFont(false));
-    catForm->addRow(QStringLiteral("Disk Volume:"), m_lblFreeSpace);
+    catForm->addRow(ar ? QStringLiteral("مساحة القرص:") : QStringLiteral("Disk Volume:"), m_lblFreeSpace);
     root->addWidget(catBox);
 
-    auto* tempBox = new QGroupBox(QStringLiteral("Temporary .part Directory & Preallocation"), this);
+    auto* tempBox = new QGroupBox(ar ? QStringLiteral("مجلد الأجزاء المؤقتة (.part) والحجز المسبق")
+                                     : QStringLiteral("Temporary .part Directory & Preallocation"), this);
     auto* tempForm = new QFormLayout(tempBox);
     tempForm->setSpacing(10);
 
     auto* tempRow = new QHBoxLayout();
     m_tempPartEdit = new QLineEdit(cfg.tempPartDirectory(), tempBox);
-    auto* btnBrowseTemp = new QPushButton(QStringLiteral("Browse"), tempBox);
+    auto* btnBrowseTemp = new QPushButton(ar ? QStringLiteral("استعراض") : QStringLiteral("Browse"), tempBox);
     btnBrowseTemp->setIcon(IconRegistry::icon(IconId::FolderOpen, 14));
     tempRow->addWidget(m_tempPartEdit, 1);
     tempRow->addWidget(btnBrowseTemp);
-    tempForm->addRow(QStringLiteral("Temp .part Folder:"), tempRow);
+    tempForm->addRow(ar ? QStringLiteral("مجلد المؤقت (.part):") : QStringLiteral("Temp .part Folder:"), tempRow);
 
     m_chkPreallocate = new QCheckBox(
-        QStringLiteral("Preallocate full file size on disk before downloading (prevents NTFS fragmentation)"), tempBox);
+        ar ? QStringLiteral("حجز المساحة الكاملة للملف مسبقاً على القرص لمنع تشتت البيانات (NTFS Preallocation)")
+           : QStringLiteral("Preallocate full file size on disk before downloading (prevents NTFS fragmentation)"), tempBox);
     m_chkPreallocate->setChecked(cfg.preallocateDiskSpace());
     tempForm->addRow(m_chkPreallocate);
     root->addWidget(tempBox);
@@ -98,7 +104,10 @@ SavePathsSettingsPage::SavePathsSettingsPage(QWidget* parent)
         if (!p.isEmpty()) { m_tempPartEdit->setText(p); }
     });
 
-    onCategoryIndexChanged(0);
+    m_catPathEdit->blockSignals(true);
+    m_catPathEdit->setText(m_pendingPaths.value(core::FileCategory::All));
+    m_catPathEdit->blockSignals(false);
+    QTimer::singleShot(25, this, [this]() { refreshFreeDiskLabel(m_catPathEdit->text()); });
 }
 
 void SavePathsSettingsPage::onCategoryIndexChanged(int idx) {

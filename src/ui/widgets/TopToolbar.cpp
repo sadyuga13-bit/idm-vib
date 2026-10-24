@@ -59,6 +59,7 @@ TopToolbar::TopToolbar(QWidget* parent)
     layout->addWidget(speedIconLbl);
 
     m_spinSpeedCap = new QSpinBox(this);
+    m_spinSpeedCap->setLocale(QLocale::c());
     m_spinSpeedCap->setRange(0, 1000000);
     m_spinSpeedCap->setSingleStep(256);
     m_spinSpeedCap->setSpecialValueText(QStringLiteral("Unlimited"));
@@ -127,9 +128,9 @@ void TopToolbar::resizeEvent(QResizeEvent* event) {
 
 void TopToolbar::applyResponsiveButtonMode(int availableWidth) {
     const Qt::ToolButtonStyle primaryStyle =
-        (availableWidth >= 900) ? Qt::ToolButtonTextBesideIcon : Qt::ToolButtonIconOnly;
+        (availableWidth >= 820) ? Qt::ToolButtonTextBesideIcon : Qt::ToolButtonIconOnly;
     const Qt::ToolButtonStyle utilityStyle =
-        (availableWidth >= 1260) ? Qt::ToolButtonTextBesideIcon : Qt::ToolButtonIconOnly;
+        (availableWidth >= 1020) ? Qt::ToolButtonTextBesideIcon : Qt::ToolButtonIconOnly;
 
     m_btnAddUrl->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     m_btnResume->setToolButtonStyle(primaryStyle);
@@ -212,8 +213,7 @@ QToolButton* TopToolbar::createActionBtn(const QString& text, const QIcon& icon,
     btn->setIcon(icon);
     btn->setIconSize(QSize(16, 16));
     btn->setFixedHeight(32);
-    btn->setMinimumWidth(34);
-    btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    btn->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     btn->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     btn->setCursor(Qt::PointingHandCursor);
     return btn;

@@ -48,8 +48,10 @@ void SegmentWorker::start(
     QNetworkRequest req(url);
     req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
     profile.applyToRequest(req);
+    const bool isYoutubeStream = url.host().contains(QStringLiteral("googlevideo.com"), Qt::CaseInsensitive);
     if (end >= 0) {
-        req.setRawHeader("Range", QByteArray("bytes=") + QByteArray::number(cur) + "-" + QByteArray::number(end));
+        const qint64 reqEnd = isYoutubeStream ? std::min<qint64>(end, cur + 8388607LL) : end;
+        req.setRawHeader("Range", QByteArray("bytes=") + QByteArray::number(cur) + "-" + QByteArray::number(reqEnd));
     } else if (cur > 0) {
         req.setRawHeader("Range", QByteArray("bytes=") + QByteArray::number(cur) + "-");
     }
@@ -241,36 +243,34 @@ void SegmentWorker::handleReplyFinished() {
     const bool rangeSatisfied = (end >= 0) ? (cur > end) : (reply->error() == QNetworkReply::NoError && cur > 0);
 
     if (rangeSatisfied) {
-        m_state = core::SegmentState::Completed;
-        m_statusText = QStringLiteral("Finished");
+        m_state = core::SegmentState::Completed; m_statusText = QStringLiteral("Finished");
         reply->deleteLater();
-        emit stateUpdated(m_segmentId);
-        emit segmentFinished(m_segmentId);
+        emit stateUpdated(m_segmentId); emit segmentFinished(m_segmentId);
         return;
     }
-
+    const bool isYoutubeChunkDone = (reply->error() == QNetworkReply::NoError) && (end >= 0 && cur <= end) &&
+        m_url.host().contains(QStringLiteral("googlevideo.com"), Qt::CaseInsensitive);
     const QString errStr = (reply->error() != QNetworkReply::NoError)
-        ? reply->errorString()
-        : QStringLiteral("Premature stream EOF at byte %1 of %2").arg(cur).arg(end);
+        ? reply->errorString() : QStringLiteral("Premature stream EOF at byte %1 of %2").arg(cur).arg(end);
     reply->deleteLater();
-
-    if (m_retryCount < 15 && m_sharedNam != nullptr && m_state != core::SegmentState::Paused) {
-        ++m_retryCount;
-        m_state = core::SegmentState::Connecting;
-        m_statusText = QStringLiteral("Retrying (%1/15)...").arg(m_retryCount);
-        emit stateUpdated(m_segmentId);
-        QTimer::singleShot(1000, this, [this]() {
-            if (m_state != core::SegmentState::Paused && m_sharedNam != nullptr) {
-                start(m_url, m_profile, m_sharedNam);
-            }
+    if (isYoutubeChunkDone && m_sharedNam != nullptr && m_state != core::SegmentState::Paused) {
+        m_retryCount = 0;
+        QTimer::singleShot(0, this, [this]() {
+            if (m_state != core::SegmentState::Paused && m_sharedNam != nullptr) { start(m_url, m_profile, m_sharedNam); }
         });
         return;
     }
-
-    m_state = core::SegmentState::Error;
-    m_statusText = errStr;
-    emit stateUpdated(m_segmentId);
-    emit segmentFailed(m_segmentId, errStr);
+    if (m_retryCount < 15 && m_sharedNam != nullptr && m_state != core::SegmentState::Paused) {
+        ++m_retryCount;
+        m_state = core::SegmentState::Connecting; m_statusText = QStringLiteral("Retrying (%1/15)...").arg(m_retryCount);
+        emit stateUpdated(m_segmentId);
+        QTimer::singleShot(1000, this, [this]() {
+            if (m_state != core::SegmentState::Paused && m_sharedNam != nullptr) { start(m_url, m_profile, m_sharedNam); }
+        });
+        return;
+    }
+    m_state = core::SegmentState::Error; m_statusText = errStr;
+    emit stateUpdated(m_segmentId); emit segmentFailed(m_segmentId, errStr);
 }
 
 void SegmentWorker::updateSpeedMetric(qint64 newlyWritten) {

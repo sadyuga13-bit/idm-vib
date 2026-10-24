@@ -84,8 +84,9 @@ void DownloadTask::setTaskSpeedLimitKiB(qint64 kibPerSec) { m_taskLimiter.setLim
 qint64 DownloadTask::taskSpeedLimitKiB() const noexcept { return m_taskLimiter.limitKiBPerSec(); }
 
 void DownloadTask::setDynamicSegmentCount(int newCount) {
-    const int target = (m_capabilityToken != nullptr)
+    int target = (m_capabilityToken != nullptr)
         ? m_capabilityToken->resolvePermittedSegments(newCount) : std::clamp(newCount, 1, 32);
+    if (m_metrics.url.contains(QStringLiteral("googlevideo.com"), Qt::CaseInsensitive)) { target = std::min(target, 2); }
     m_metrics.maxSegments = target;
     if (m_metrics.state != core::TaskState::Active || !m_metrics.resumeSupported) { return; }
     while (m_workers.size() < target && m_workers.size() < 32) {
@@ -161,7 +162,9 @@ void DownloadTask::initializeSegmentsAndStart(bool isResuming) {
         const int tokenPermitted = (m_capabilityToken != nullptr)
             ? m_capabilityToken->resolvePermittedSegments(m_metrics.maxSegments)
             : std::clamp(m_metrics.maxSegments, 1, 32);
-        const int segCount = (!m_metrics.resumeSupported || m_metrics.totalBytes < 512 * 1024) ? 1 : tokenPermitted;
+        const int maxAllowed = m_metrics.url.contains(QStringLiteral("googlevideo.com"), Qt::CaseInsensitive)
+            ? std::min(tokenPermitted, 2) : tokenPermitted;
+        const int segCount = (!m_metrics.resumeSupported || m_metrics.totalBytes < 512 * 1024) ? 1 : maxAllowed;
         if (m_metrics.totalBytes > 0) {
             const qint64 chunk = m_metrics.totalBytes / segCount;
             for (int i = 0; i < segCount; ++i) {
@@ -270,10 +273,8 @@ void DownloadTask::onTickMetrics() {
 }
 
 void DownloadTask::finalizeDownload() {
-    m_metricsTimer.stop();
-    onTickMetrics();
-    m_metrics.speedBytesPerSec = 0;
-    m_metrics.etaSeconds = 0;
+    m_metricsTimer.stop(); onTickMetrics();
+    m_metrics.speedBytesPerSec = 0; m_metrics.etaSeconds = 0;
     if (m_metrics.totalBytes <= 0) { m_metrics.totalBytes = m_metrics.downloadedBytes; }
     QString finalizeErr;
     if (!m_diskWriter.finalizeFile(&finalizeErr)) {
@@ -287,12 +288,10 @@ void DownloadTask::finalizeDownload() {
 }
 void DownloadTask::setState(core::TaskState newState) {
     m_metrics.state = newState;
-    emit stateChanged(m_metrics.taskId, newState);
-    emit metricsUpdated(m_metrics.taskId);
+    emit stateChanged(m_metrics.taskId, newState); emit metricsUpdated(m_metrics.taskId);
 }
 void DownloadTask::appendLog(const QString& message) {
-    const QString line = QStringLiteral("[%1] %2")
-        .arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss.zzz")), message);
+    const QString line = QStringLiteral("[%1] %2").arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss.zzz")), message);
     m_logs.append(line);
     if (m_logs.size() > 500) { m_logs.removeFirst(); }
     emit logAdded(m_metrics.taskId, line);

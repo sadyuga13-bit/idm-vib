@@ -1,5 +1,6 @@
 #include "ui/settings/FileTypesSettingsPage.h"
 #include "config/AppConfig.h"
+#include "i18n/I18nManager.h"
 #include "storage/CategoryRouter.h"
 #include "ui/theme/IconRegistry.h"
 #include "ui/theme/ThemeTokens.h"
@@ -26,11 +27,13 @@ using theme::ThemeTokens;
 FileTypesSettingsPage::FileTypesSettingsPage(QWidget* parent)
     : QWidget(parent) {
     const AppConfig& cfg = AppConfig::instance();
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(14, 14, 14, 14);
     root->setSpacing(10);
 
-    auto* extBox = new QGroupBox(QStringLiteral("Automatically Captured File Extensions"), this);
+    auto* extBox = new QGroupBox(ar ? QStringLiteral("امتدادات الملفات الملتقطة تلقائياً من المتصفح")
+                                    : QStringLiteral("Automatically Captured File Extensions"), this);
     auto* extLayout = new QVBoxLayout(extBox);
     m_extensionsEdit = new QPlainTextEdit(cfg.capturedExtensions().join(QLatin1Char(' ')).toUpper(), extBox);
     m_extensionsEdit->setFont(ThemeTokens::monoFont(false));
@@ -38,8 +41,10 @@ FileTypesSettingsPage::FileTypesSettingsPage(QWidget* parent)
     extLayout->addWidget(m_extensionsEdit);
 
     auto* extBtnRow = new QHBoxLayout();
-    auto* btnResetExt = new QPushButton(QStringLiteral("Reset Default Extensions"), extBox);
-    auto* btnOpenChromeExt = new QPushButton(QStringLiteral("Open Chrome Extension Folder"), extBox);
+    auto* btnResetExt = new QPushButton(ar ? QStringLiteral("استعادة الامتدادات الافتراضية")
+                                           : QStringLiteral("Reset Default Extensions"), extBox);
+    auto* btnOpenChromeExt = new QPushButton(ar ? QStringLiteral("فتح مجلد إضافة متصفح كروم")
+                                                : QStringLiteral("Open Chrome Extension Folder"), extBox);
     btnOpenChromeExt->setIcon(IconRegistry::icon(IconId::BrowserExt, 14));
     extBtnRow->addWidget(btnResetExt);
     extBtnRow->addStretch(1);
@@ -47,7 +52,8 @@ FileTypesSettingsPage::FileTypesSettingsPage(QWidget* parent)
     extLayout->addLayout(extBtnRow);
     root->addWidget(extBox);
 
-    auto* domBox = new QGroupBox(QStringLiteral("Excluded Websites & Domains (Do Not Intercept Automatically)"), this);
+    auto* domBox = new QGroupBox(ar ? QStringLiteral("المواقع والنطاقات المستثناة من الالتقاط التلقائي")
+                                    : QStringLiteral("Excluded Websites & Domains (Do Not Intercept Automatically)"), this);
     auto* domLayout = new QVBoxLayout(domBox);
     m_excludedDomainsEdit = new QPlainTextEdit(cfg.excludedDomains().join(QStringLiteral(", ")), domBox);
     m_excludedDomainsEdit->setFont(ThemeTokens::monoFont(false));
@@ -55,17 +61,22 @@ FileTypesSettingsPage::FileTypesSettingsPage(QWidget* parent)
     domLayout->addWidget(m_excludedDomainsEdit);
     root->addWidget(domBox);
 
-    auto* dupBox = new QGroupBox(QStringLiteral("Duplicate File Conflict Resolution Policy"), this);
+    auto* dupBox = new QGroupBox(ar ? QStringLiteral("سياسة التعامل مع الملفات المكررة بنفس الاسم")
+                                    : QStringLiteral("Duplicate File Conflict Resolution Policy"), this);
     auto* dupForm = new QFormLayout(dupBox);
     m_duplicatePolicyCombo = new QComboBox(dupBox);
     m_duplicatePolicyCombo->addItems({
-        QStringLiteral("Auto-Rename with Sequential Number: file (1).zip"),
-        QStringLiteral("Resume Download if File Size & ETag Match"),
-        QStringLiteral("Overwrite Existing File on Disk"),
-        QStringLiteral("Always Prompt User on Conflict")
+        ar ? QStringLiteral("إعادة تسمية تلقائية برقم متسلسل: file (1).zip")
+           : QStringLiteral("Auto-Rename with Sequential Number: file (1).zip"),
+        ar ? QStringLiteral("استئناف التحميل إذا تطابق الحجم والبصمة (ETag)")
+           : QStringLiteral("Resume Download if File Size & ETag Match"),
+        ar ? QStringLiteral("استبدال الملف الموجود على القرص")
+           : QStringLiteral("Overwrite Existing File on Disk"),
+        ar ? QStringLiteral("سؤال المستخدم دائماً عند التعارض")
+           : QStringLiteral("Always Prompt User on Conflict")
     });
     m_duplicatePolicyCombo->setCurrentIndex(static_cast<int>(cfg.duplicatePolicy()));
-    dupForm->addRow(QStringLiteral("When File Exists:"), m_duplicatePolicyCombo);
+    dupForm->addRow(ar ? QStringLiteral("عند وجود الملف مسبقاً:") : QStringLiteral("When File Exists:"), m_duplicatePolicyCombo);
     root->addWidget(dupBox);
     root->addStretch(1);
 

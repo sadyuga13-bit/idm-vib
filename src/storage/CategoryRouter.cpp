@@ -1,4 +1,5 @@
 #include "storage/CategoryRouter.h"
+#include "i18n/I18nManager.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -65,17 +66,18 @@ core::FileCategory CategoryRouter::classifyFileName(const QString& fileName) {
 }
 
 QString CategoryRouter::categoryDisplayName(core::FileCategory category) {
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
     switch (category) {
-        case core::FileCategory::All:         return QStringLiteral("All Downloads");
-        case core::FileCategory::Archive:     return QStringLiteral("Compressed");
-        case core::FileCategory::Video:       return QStringLiteral("Video");
-        case core::FileCategory::Audio:       return QStringLiteral("Music");
-        case core::FileCategory::Document:    return QStringLiteral("Documents");
-        case core::FileCategory::Application: return QStringLiteral("Programs");
-        case core::FileCategory::Image:       return QStringLiteral("Images");
-        case core::FileCategory::Other:       return QStringLiteral("Unfinished / Other");
+        case core::FileCategory::All:         return ar ? QStringLiteral("جميع التحميلات") : QStringLiteral("All Downloads");
+        case core::FileCategory::Archive:     return ar ? QStringLiteral("الملفات المضغوطة") : QStringLiteral("Compressed");
+        case core::FileCategory::Video:       return ar ? QStringLiteral("الفيديو والمرئيات") : QStringLiteral("Video");
+        case core::FileCategory::Audio:       return ar ? QStringLiteral("الصوتيات والموسيقى") : QStringLiteral("Music");
+        case core::FileCategory::Document:    return ar ? QStringLiteral("المستندات والكتب") : QStringLiteral("Documents");
+        case core::FileCategory::Application: return ar ? QStringLiteral("البرامج والتطبيقات") : QStringLiteral("Programs");
+        case core::FileCategory::Image:       return ar ? QStringLiteral("الصور والرسوميات") : QStringLiteral("Images");
+        case core::FileCategory::Other:       return ar ? QStringLiteral("غير مكتمل / أخرى") : QStringLiteral("Unfinished / Other");
     }
-    return QStringLiteral("General");
+    return ar ? QStringLiteral("عام") : QStringLiteral("General");
 }
 
 QString CategoryRouter::defaultDirectoryForCategory(core::FileCategory category) {

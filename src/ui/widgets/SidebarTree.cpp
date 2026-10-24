@@ -1,4 +1,5 @@
 #include "ui/widgets/SidebarTree.h"
+#include "i18n/I18nManager.h"
 #include "storage/CategoryRouter.h"
 #include "ui/theme/IconRegistry.h"
 #include "ui/theme/ThemeTokens.h"
@@ -46,14 +47,15 @@ SidebarTree::SidebarTree(QWidget* parent)
     qLayout->setContentsMargins(8, 8, 8, 8);
     qLayout->setSpacing(6);
 
-    m_btnStartQueue = new QPushButton(QStringLiteral("Start"), queuePanel);
-    m_btnStartQueue->setToolTip(QStringLiteral("Start Selected Queue"));
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
+    m_btnStartQueue = new QPushButton(ar ? QStringLiteral("بدء الطابور") : QStringLiteral("Start"), queuePanel);
+    m_btnStartQueue->setToolTip(ar ? QStringLiteral("بدء تشغيل الطابور المحدد") : QStringLiteral("Start Selected Queue"));
     m_btnStartQueue->setIcon(IconRegistry::icon(IconId::StartPlay, 14));
     m_btnStartQueue->setFixedHeight(30);
     m_btnStartQueue->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-    m_btnStopQueue = new QPushButton(QStringLiteral("Stop"), queuePanel);
-    m_btnStopQueue->setToolTip(QStringLiteral("Stop Selected Queue"));
+    m_btnStopQueue = new QPushButton(ar ? QStringLiteral("إيقاف") : QStringLiteral("Stop"), queuePanel);
+    m_btnStopQueue->setToolTip(ar ? QStringLiteral("إيقاف الطابور المحدد") : QStringLiteral("Stop Selected Queue"));
     m_btnStopQueue->setIcon(IconRegistry::icon(IconId::StopSquare, 14));
     m_btnStopQueue->setFixedHeight(30);
     m_btnStopQueue->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -101,12 +103,21 @@ SidebarTree::SidebarTree(QWidget* parent)
     connect(m_btnStopQueue, &QPushButton::clicked, this, [this]() {
         emit stopQueueRequested(m_activeQueueName);
     });
+    connect(&i18n::I18nManager::instance(), &i18n::I18nManager::languageChanged, this, [this]() {
+        const bool isAr = i18n::I18nManager::instance().isRightToLeft();
+        m_btnStartQueue->setText(isAr ? QStringLiteral("بدء الطابور") : QStringLiteral("Start"));
+        m_btnStopQueue->setText(isAr ? QStringLiteral("إيقاف") : QStringLiteral("Stop"));
+        m_tree->clear();
+        populateTree();
+        refreshDiskTelemetry();
+    });
 
     refreshDiskTelemetry();
 }
 
 void SidebarTree::populateTree() {
-    auto* catRoot = new QTreeWidgetItem(m_tree, {QStringLiteral("CATEGORIES")});
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
+    auto* catRoot = new QTreeWidgetItem(m_tree, {ar ? QStringLiteral("التصنيفات") : QStringLiteral("CATEGORIES")});
     catRoot->setFlags(Qt::ItemIsEnabled);
     catRoot->setFont(0, ThemeTokens::uiFont(true));
 
@@ -132,16 +143,16 @@ void SidebarTree::populateTree() {
         }
     }
 
-    auto* queueRoot = new QTreeWidgetItem(m_tree, {QStringLiteral("SCHEDULER QUEUES")});
+    auto* queueRoot = new QTreeWidgetItem(m_tree, {ar ? QStringLiteral("طوابير التحميل") : QStringLiteral("SCHEDULER QUEUES")});
     queueRoot->setFlags(Qt::ItemIsEnabled);
     queueRoot->setFont(0, ThemeTokens::uiFont(true));
 
-    auto* mainQ = new QTreeWidgetItem(queueRoot, {QStringLiteral("Main Queue")});
+    auto* mainQ = new QTreeWidgetItem(queueRoot, {ar ? QStringLiteral("الطابور الرئيسي") : QStringLiteral("Main Queue")});
     mainQ->setIcon(0, IconRegistry::icon(IconId::QueueMain, 16));
     mainQ->setData(0, kRoleItemType, kTypeQueue);
     mainQ->setData(0, kRoleItemValue, QStringLiteral("Main Queue"));
 
-    auto* nightQ = new QTreeWidgetItem(queueRoot, {QStringLiteral("Night Queue")});
+    auto* nightQ = new QTreeWidgetItem(queueRoot, {ar ? QStringLiteral("الطابور الليلي") : QStringLiteral("Night Queue")});
     nightQ->setIcon(0, IconRegistry::icon(IconId::QueueNight, 16));
     nightQ->setData(0, kRoleItemType, kTypeQueue);
     nightQ->setData(0, kRoleItemValue, QStringLiteral("Night Queue"));

@@ -76,6 +76,7 @@ public:
     [[nodiscard]] static QIcon icon(IconId id, int sizePx = 16);
     [[nodiscard]] static IconId iconForCategory(core::FileCategory category) noexcept;
     [[nodiscard]] static QColor colorForState(IconState state) noexcept;
+    [[nodiscard]] static QColor semanticColorForIcon(IconId id) noexcept;
 
 private:
     [[nodiscard]] static QString svgBodyForIcon(IconId id);

@@ -1,4 +1,5 @@
 #include "ui/widgets/InspectorDock.h"
+#include "i18n/I18nManager.h"
 #include "ui/theme/IconRegistry.h"
 #include "ui/theme/ThemeTokens.h"
 
@@ -57,7 +58,9 @@ InspectorDock::InspectorDock(QWidget* parent)
     sh->setSectionResizeMode(models::SegmentTableModel::ColRange, QHeaderView::Stretch);
     segLayout->addWidget(m_segmentTable, 1);
 
-    m_tabs->addTab(segPage, IconRegistry::icon(IconId::CpuThreads, 15), QStringLiteral("Segments & Byte Map"));
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
+    m_tabs->addTab(segPage, IconRegistry::icon(IconId::CpuThreads, 15),
+        ar ? QStringLiteral("المسارات وخريطة البايتات") : QStringLiteral("Segments & Byte Map"));
 
     auto* speedPage = new QWidget(m_tabs);
     auto* speedLayout = new QHBoxLayout(speedPage);
@@ -87,19 +90,28 @@ InspectorDock::InspectorDock(QWidget* parent)
 
     m_lblUrlValue = makeBoundedLabel(QStringLiteral("--"));
     m_lblPathValue = makeBoundedLabel(QStringLiteral("--"));
-    m_lblHashValue = makeBoundedLabel(QStringLiteral("Not verified yet"));
+    m_lblHashValue = makeBoundedLabel(ar ? QStringLiteral("بانتظار التحقق") : QStringLiteral("Not verified yet"));
 
-    form->addRow(QStringLiteral("Endpoint URL:"), m_lblUrlValue);
-    form->addRow(QStringLiteral("Disk Target:"), m_lblPathValue);
-    form->addRow(QStringLiteral("SHA-256 / MD5:"), m_lblHashValue);
+    form->addRow(ar ? QStringLiteral("الرابط المباشر:") : QStringLiteral("Endpoint URL:"), m_lblUrlValue);
+    form->addRow(ar ? QStringLiteral("مسار الحفظ:") : QStringLiteral("Disk Target:"), m_lblPathValue);
+    form->addRow(ar ? QStringLiteral("البصمة الرقمية:") : QStringLiteral("SHA-256 / MD5:"), m_lblHashValue);
     speedLayout->addWidget(metaBox, 2);
 
-    m_tabs->addTab(speedPage, IconRegistry::icon(IconId::SpeedGauge, 15), QStringLiteral("Throughput Telemetry"));
+    m_tabs->addTab(speedPage, IconRegistry::icon(IconId::SpeedGauge, 15),
+        ar ? QStringLiteral("مؤشرات السرعة والأداء") : QStringLiteral("Throughput Telemetry"));
 
     m_logConsole = new QPlainTextEdit(m_tabs);
     m_logConsole->setReadOnly(true);
     m_logConsole->setFont(ThemeTokens::monoFont(false));
-    m_tabs->addTab(m_logConsole, IconRegistry::icon(IconId::TerminalLog, 15), QStringLiteral("Protocol & Engine Log"));
+    m_tabs->addTab(m_logConsole, IconRegistry::icon(IconId::TerminalLog, 15),
+        ar ? QStringLiteral("سجل البروتوكول والمحرك") : QStringLiteral("Protocol & Engine Log"));
+
+    connect(&i18n::I18nManager::instance(), &i18n::I18nManager::languageChanged, this, [this]() {
+        const bool isAr = i18n::I18nManager::instance().isRightToLeft();
+        m_tabs->setTabText(0, isAr ? QStringLiteral("المسارات وخريطة البايتات") : QStringLiteral("Segments & Byte Map"));
+        m_tabs->setTabText(1, isAr ? QStringLiteral("مؤشرات السرعة والأداء") : QStringLiteral("Throughput Telemetry"));
+        m_tabs->setTabText(2, isAr ? QStringLiteral("سجل البروتوكول والمحرك") : QStringLiteral("Protocol & Engine Log"));
+    });
 
     mainLayout->addWidget(m_tabs);
 }

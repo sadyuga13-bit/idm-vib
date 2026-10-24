@@ -1,5 +1,6 @@
 #include "ui/dialogs/AddDownloadDialog.h"
 #include "core/AppSettings.h"
+#include "i18n/I18nManager.h"
 #include "storage/CategoryRouter.h"
 #include "ui/theme/IconRegistry.h"
 #include "ui/theme/ThemeTokens.h"
@@ -8,6 +9,7 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
+#include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -21,13 +23,10 @@ using theme::IconRegistry;
 using theme::ThemeTokens;
 
 AddDownloadDialog::AddDownloadDialog(
-    const QString& initialUrl,
-    const network::RequestProfile& initialProfile,
-    const QString& suggestedFileName,
-    QWidget* parent
-)
-    : QDialog(parent) {
-    setWindowTitle(QStringLiteral("Add New Download / YouTube Stream"));
+    const QString& initialUrl, const network::RequestProfile& initialProfile,
+    const QString& suggestedFileName, QWidget* parent) : QDialog(parent) {
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
+    setWindowTitle(ar ? QStringLiteral("إضافة رابط تحميل جديد / فيديو يوتيوب") : QStringLiteral("Add New Download / YouTube Stream"));
     setMinimumWidth(520);
     resize(620, 500);
 
@@ -36,7 +35,7 @@ AddDownloadDialog::AddDownloadDialog(
     rootLayout->setContentsMargins(16, 16, 16, 16);
     rootLayout->setSpacing(12);
 
-    auto* targetBox = new QGroupBox(QStringLiteral("Endpoint & Target Configuration"), this);
+    auto* targetBox = new QGroupBox(ar ? QStringLiteral("الرابط وإعدادات الملف") : QStringLiteral("Endpoint & Target Configuration"), this);
     auto* targetForm = new QFormLayout(targetBox);
     targetForm->setSpacing(8);
     targetForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
@@ -44,33 +43,34 @@ AddDownloadDialog::AddDownloadDialog(
     auto* urlRow = new QHBoxLayout();
     m_urlEdit = new QLineEdit(initialUrl, targetBox);
     m_urlEdit->setPlaceholderText(QStringLiteral("https://www.youtube.com/watch?v=... or direct file URL"));
-    m_btnProbe = new QPushButton(QStringLiteral("Probe / Extract"), targetBox);
+    m_btnProbe = new QPushButton(ar ? QStringLiteral("فحص واستخراج") : QStringLiteral("Probe / Extract"), targetBox);
     m_btnProbe->setIcon(IconRegistry::icon(IconId::NetworkGlobe, 14));
     urlRow->addWidget(m_urlEdit, 1);
     urlRow->addWidget(m_btnProbe);
-    targetForm->addRow(QStringLiteral("URL:"), urlRow);
+    targetForm->addRow(ar ? QStringLiteral("الرابط:") : QStringLiteral("URL:"), urlRow);
 
-    m_lblProbeStatus = new QLabel(QStringLiteral("Ready to probe remote server or YouTube Innertube API."), targetBox);
+    m_lblProbeStatus = new QLabel(ar ? QStringLiteral("جاهز لفحص السيرفر أو استخراج جودات يوتيوب.")
+                                     : QStringLiteral("Ready to probe remote server or YouTube Innertube API."), targetBox);
     m_lblProbeStatus->setFont(ThemeTokens::monoFont(false));
     m_lblProbeStatus->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     m_lblProbeStatus->setMinimumWidth(0);
-    targetForm->addRow(QStringLiteral("Stream Probe:"), m_lblProbeStatus);
+    targetForm->addRow(ar ? QStringLiteral("حالة الفحص:") : QStringLiteral("Stream Probe:"), m_lblProbeStatus);
 
     m_ytQualityCombo = new QComboBox(targetBox);
     m_ytQualityCombo->setEnabled(false);
-    m_ytQualityCombo->addItem(QStringLiteral("Standard Direct HTTP File (Auto-Detect)"));
-    targetForm->addRow(QStringLiteral("Media Stream:"), m_ytQualityCombo);
+    m_ytQualityCombo->addItem(ar ? QStringLiteral("ملف مباشر قياسي (اكتشاف تلقائي)") : QStringLiteral("Standard Direct HTTP File (Auto-Detect)"));
+    targetForm->addRow(ar ? QStringLiteral("الجودة والصيغة:") : QStringLiteral("Media Stream:"), m_ytQualityCombo);
 
     m_fileNameEdit = new QLineEdit(suggestedFileName, targetBox);
-    targetForm->addRow(QStringLiteral("Save File As:"), m_fileNameEdit);
+    targetForm->addRow(ar ? QStringLiteral("حفظ باسم:") : QStringLiteral("Save File As:"), m_fileNameEdit);
 
     auto* dirRow = new QHBoxLayout();
     m_saveDirEdit = new QLineEdit(cfg.defaultSaveDirectory(), targetBox);
-    auto* btnBrowse = new QPushButton(QStringLiteral("Browse"), targetBox);
+    auto* btnBrowse = new QPushButton(ar ? QStringLiteral("استعراض") : QStringLiteral("Browse"), targetBox);
     btnBrowse->setIcon(IconRegistry::icon(IconId::FolderOpen, 14));
     dirRow->addWidget(m_saveDirEdit, 1);
     dirRow->addWidget(btnBrowse);
-    targetForm->addRow(QStringLiteral("Directory:"), dirRow);
+    targetForm->addRow(ar ? QStringLiteral("مجلد الحفظ:") : QStringLiteral("Directory:"), dirRow);
 
     auto* optsRow = new QHBoxLayout();
     m_queueCombo = new QComboBox(targetBox);
@@ -80,17 +80,17 @@ AddDownloadDialog::AddDownloadDialog(
     m_segmentsSpin->setValue(cfg.defaultSegments());
     m_segmentsSpin->setSuffix(QStringLiteral(" threads"));
     optsRow->addWidget(m_queueCombo, 1);
-    optsRow->addWidget(new QLabel(QStringLiteral("Connections:"), targetBox));
+    optsRow->addWidget(new QLabel(ar ? QStringLiteral("الاتصالات:") : QStringLiteral("Connections:"), targetBox));
     optsRow->addWidget(m_segmentsSpin);
-    targetForm->addRow(QStringLiteral("Queue & Split:"), optsRow);
+    targetForm->addRow(ar ? QStringLiteral("الطابور والتقسيم:") : QStringLiteral("Queue & Split:"), optsRow);
 
     m_hashEdit = new QLineEdit(targetBox);
-    m_hashEdit->setPlaceholderText(QStringLiteral("Optional expected SHA-256 or MD5 hex digest"));
+    m_hashEdit->setPlaceholderText(ar ? QStringLiteral("اختياري: بصمة SHA-256 أو MD5 للتحقق") : QStringLiteral("Optional expected SHA-256 or MD5 hex digest"));
     m_hashEdit->setFont(ThemeTokens::monoFont(false));
-    targetForm->addRow(QStringLiteral("Checksum:"), m_hashEdit);
+    targetForm->addRow(ar ? QStringLiteral("البصمة الرقمية:") : QStringLiteral("Checksum:"), m_hashEdit);
     rootLayout->addWidget(targetBox);
 
-    auto* advBox = new QGroupBox(QStringLiteral("Headers, Cookies, Auth & Proxy"), this);
+    auto* advBox = new QGroupBox(ar ? QStringLiteral("الترويسات والكوكيز والمصادقة والبروكسي") : QStringLiteral("Headers, Cookies, Auth & Proxy"), this);
     auto* advForm = new QFormLayout(advBox);
     advForm->setSpacing(8);
 
@@ -104,16 +104,16 @@ AddDownloadDialog::AddDownloadDialog(
 
     auto* authRow = new QHBoxLayout();
     m_authUserEdit = new QLineEdit(initialProfile.authUser, advBox);
-    m_authUserEdit->setPlaceholderText(QStringLiteral("HTTP Basic Username"));
+    m_authUserEdit->setPlaceholderText(ar ? QStringLiteral("اسم المستخدم") : QStringLiteral("HTTP Basic Username"));
     m_authPassEdit = new QLineEdit(initialProfile.authPassword, advBox);
-    m_authPassEdit->setPlaceholderText(QStringLiteral("Password"));
+    m_authPassEdit->setPlaceholderText(ar ? QStringLiteral("كلمة المرور") : QStringLiteral("Password"));
     m_authPassEdit->setEchoMode(QLineEdit::Password);
     authRow->addWidget(m_authUserEdit);
     authRow->addWidget(m_authPassEdit);
-    advForm->addRow(QStringLiteral("Basic Auth:"), authRow);
+    advForm->addRow(ar ? QStringLiteral("مصادقة HTTP:") : QStringLiteral("Basic Auth:"), authRow);
 
     auto* proxyRow = new QHBoxLayout();
-    m_proxyCheck = new QCheckBox(QStringLiteral("Enable HTTP Proxy"), advBox);
+    m_proxyCheck = new QCheckBox(ar ? QStringLiteral("تفعيل البروكسي") : QStringLiteral("Enable HTTP Proxy"), advBox);
     m_proxyCheck->setChecked(initialProfile.proxyEnabled || cfg.proxyEnabled());
     m_proxyHostEdit = new QLineEdit(initialProfile.proxyHost.isEmpty() ? cfg.proxyHost() : initialProfile.proxyHost, advBox);
     m_proxyPortSpin = new QSpinBox(advBox);
@@ -122,15 +122,15 @@ AddDownloadDialog::AddDownloadDialog(
     proxyRow->addWidget(m_proxyCheck);
     proxyRow->addWidget(m_proxyHostEdit, 1);
     proxyRow->addWidget(m_proxyPortSpin);
-    advForm->addRow(QStringLiteral("Proxy:"), proxyRow);
+    advForm->addRow(ar ? QStringLiteral("البروكسي:") : QStringLiteral("Proxy:"), proxyRow);
     rootLayout->addWidget(advBox);
 
     auto* btnRow = new QHBoxLayout();
     btnRow->addStretch(1);
-    auto* btnCancel = new QPushButton(QStringLiteral("Cancel"), this);
-    auto* btnQueueLater = new QPushButton(QStringLiteral("Add to Queue"), this);
+    auto* btnCancel = new QPushButton(ar ? QStringLiteral("إلغاء") : QStringLiteral("Cancel"), this);
+    auto* btnQueueLater = new QPushButton(ar ? QStringLiteral("إضافة للطابور") : QStringLiteral("Add to Queue"), this);
     btnQueueLater->setIcon(IconRegistry::icon(IconId::SchedulerClock, 14));
-    auto* btnStartNow = new QPushButton(QStringLiteral("Download Now"), this);
+    auto* btnStartNow = new QPushButton(ar ? QStringLiteral("بدء التحميل الآن") : QStringLiteral("Download Now"), this);
     btnStartNow->setObjectName(QStringLiteral("primaryActionBtn"));
     btnStartNow->setIcon(QIcon(IconRegistry::pixmapColored(IconId::StartPlay, 14, Qt::white)));
     btnRow->addWidget(btnCancel);
@@ -144,9 +144,7 @@ AddDownloadDialog::AddDownloadDialog(
     connect(m_btnProbe, &QPushButton::clicked, this, &AddDownloadDialog::triggerProbe);
     connect(btnBrowse, &QPushButton::clicked, this, &AddDownloadDialog::onBrowseFolder);
     connect(m_fileNameEdit, &QLineEdit::textChanged, this, [this](const QString& name) {
-        if (!name.trimmed().isEmpty()) {
-            m_saveDirEdit->setText(CategoryRouter::defaultDirectoryForFile(name));
-        }
+        if (!name.trimmed().isEmpty()) { m_saveDirEdit->setText(CategoryRouter::defaultDirectoryForFile(name)); }
     });
     connect(btnCancel, &QPushButton::clicked, this, &QDialog::reject);
     connect(btnQueueLater, &QPushButton::clicked, this, [this]() {
@@ -157,9 +155,8 @@ AddDownloadDialog::AddDownloadDialog(
         m_startImmediately = true;
         if (!m_urlEdit->text().trimmed().isEmpty()) { accept(); }
     });
-
     if (!initialUrl.trimmed().isEmpty()) {
-        triggerProbe();
+        QTimer::singleShot(15, this, &AddDownloadDialog::triggerProbe);
     }
 }
 

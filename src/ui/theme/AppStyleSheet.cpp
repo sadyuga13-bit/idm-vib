@@ -3,11 +3,31 @@
 #include "core/AppSettings.h"
 #include "ui/theme/ThemeTokens.h"
 
+#include <QDir>
+#include <QFile>
+#include <QLocale>
 #include <QPalette>
 #include <QStyleFactory>
 #include <QWidget>
 
 namespace idm::ui::theme {
+
+namespace {
+QString writeArrowSvg(const QString& fileName, const QString& colorHex, bool upArrow) {
+    const QString path = QDir::fromNativeSeparators(QDir::tempPath() + QStringLiteral("/") + fileName);
+    QFile file(path);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        const QString poly = upArrow ? QStringLiteral("18 15 12 9 6 15") : QStringLiteral("6 9 12 15 18 9");
+        const QString svg = QStringLiteral(
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' "
+            "stroke='%1' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'>"
+            "<polyline points='%2'/></svg>").arg(colorHex, poly);
+        file.write(svg.toUtf8());
+        file.close();
+    }
+    return path;
+}
+} // namespace
 
 void AppStyleSheet::setDayMode(bool dayMode) {
     ThemeTokens::setDayMode(dayMode);
@@ -23,6 +43,7 @@ void AppStyleSheet::setDayMode(bool dayMode) {
 }
 
 void AppStyleSheet::applyToApplication(QApplication& app) {
+    QLocale::setDefault(QLocale::c());
     ThemeTokens::setDayMode(config::AppConfig::instance().isDayMode());
     app.setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
     app.setFont(ThemeTokens::uiFont(false));
@@ -57,6 +78,8 @@ QString AppStyleSheet::buildGlobalStyleSheet() {
     const QString txtSec = ThemeTokens::textSecondary().name();
     const QString txtTec = ThemeTokens::textTechnical().name();
     const QString accent = ThemeTokens::statusActive().name();
+    const QString upArrowUrl = writeArrowSvg(QStringLiteral("idm_vibe_up.svg"), txtPri, true);
+    const QString downArrowUrl = writeArrowSvg(QStringLiteral("idm_vibe_down.svg"), txtPri, false);
 
     return QStringLiteral(R"(
         QMainWindow, QDialog { background-color: %1; color: %8; }
@@ -93,14 +116,35 @@ QString AppStyleSheet::buildGlobalStyleSheet() {
         }
         QTabBar::tab:hover { background-color: %5; color: %8; }
         QTabBar::tab:selected { background-color: %2; color: %8; border-bottom: 2px solid %11; }
-        QLineEdit, QSpinBox, QComboBox, QTimeEdit, QPlainTextEdit {
+        QLineEdit, QPlainTextEdit {
             background-color: %2; color: %8; border: 1px solid %7; border-radius: 6px; padding: 4px 8px; min-height: 22px;
+        }
+        QSpinBox, QComboBox, QTimeEdit {
+            background-color: %2; color: %8; border: 1px solid %7; border-radius: 6px;
+            padding: 4px 24px 4px 8px; min-height: 22px;
         }
         QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QTimeEdit:focus, QPlainTextEdit:focus {
             border: 1px solid %11;
         }
+        QSpinBox::up-button, QTimeEdit::up-button {
+            subcontrol-origin: border; subcontrol-position: top right; width: 20px;
+            background-color: %3; border-left: 1px solid %7; border-bottom: 1px solid %7; border-top-right-radius: 5px;
+        }
+        QSpinBox::down-button, QTimeEdit::down-button {
+            subcontrol-origin: border; subcontrol-position: bottom right; width: 20px;
+            background-color: %3; border-left: 1px solid %7; border-bottom-right-radius: 5px;
+        }
+        QComboBox::drop-down {
+            subcontrol-origin: border; subcontrol-position: top right; width: 22px;
+            background-color: %3; border-left: 1px solid %7; border-top-right-radius: 5px; border-bottom-right-radius: 5px;
+        }
+        QSpinBox::up-button:hover, QSpinBox::down-button:hover, QTimeEdit::up-button:hover, QTimeEdit::down-button:hover, QComboBox::drop-down:hover {
+            background-color: %5;
+        }
+        QSpinBox::up-arrow, QTimeEdit::up-arrow { image: url(%12); width: 10px; height: 10px; }
+        QSpinBox::down-arrow, QTimeEdit::down-arrow, QComboBox::down-arrow { image: url(%13); width: 10px; height: 10px; }
         QPushButton, QToolButton {
-            background-color: %3; color: %8; border: 1px solid %7; border-radius: 6px; padding: 4px 10px; min-height: 22px; font-weight: 500;
+            background-color: %3; color: %8; border: 1px solid %7; border-radius: 6px; padding: 4px 8px; min-height: 22px; font-weight: 500;
         }
         QPushButton:hover, QToolButton:hover { background-color: %5; border-color: %11; }
         QPushButton:pressed, QToolButton:pressed { background-color: %6; border-color: %11; }
@@ -124,7 +168,7 @@ QString AppStyleSheet::buildGlobalStyleSheet() {
         }
         QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 6px; }
     )").arg(bgWin, bgPan, bgBar, bgAlt, bgHov, bgSel, border, txtPri, txtSec)
-       .arg(txtTec, accent);
+       .arg(txtTec, accent, upArrowUrl, downArrowUrl);
 }
 
 } // namespace idm::ui::theme
