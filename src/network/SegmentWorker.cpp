@@ -256,7 +256,7 @@ void SegmentWorker::handleReplyFinished() {
         });
         return;
     }
-    emit logEvent(m_segmentId, QStringLiteral("[Warn] Segment #%1 (%2) - Retry %3/15").arg(m_segmentId).arg(errStr).arg(m_retryCount + 1));
+    emit logEvent(m_segmentId, QStringLiteral("[Warn] Segment #%1 - Retry %2/15 (%3)").arg(m_segmentId).arg(m_retryCount + 1).arg(errStr));
     if (m_retryCount < 15 && m_sharedNam != nullptr && m_state != core::SegmentState::Paused) {
         ++m_retryCount;
         m_state = core::SegmentState::Connecting; m_statusText = QStringLiteral("Retrying (%1/15)...").arg(m_retryCount);

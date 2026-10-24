@@ -87,7 +87,7 @@ qint64 DownloadTask::taskSpeedLimitKiB() const noexcept { return m_taskLimiter.l
 void DownloadTask::setDynamicSegmentCount(int newCount) {
     int target = (m_capabilityToken != nullptr)
         ? m_capabilityToken->resolvePermittedSegments(newCount) : std::clamp(newCount, 1, 32);
-    if (m_metrics.url.contains(QStringLiteral("googlevideo.com"), Qt::CaseInsensitive)) { target = std::min(target, 2); }
+    if (m_metrics.url.contains(QStringLiteral("googlevideo.com"), Qt::CaseInsensitive)) { target = 1; }
     m_metrics.maxSegments = target;
     if (m_metrics.state != core::TaskState::Active || !m_metrics.resumeSupported) { return; }
     while (m_workers.size() < target && m_workers.size() < 32) {
@@ -146,28 +146,25 @@ void DownloadTask::onProbeCompleted(const ProbeResult& result) {
 
 void DownloadTask::initializeSegmentsAndStart(bool isResuming) {
     QString diskErr;
-    const bool preservePart = isResuming && m_metrics.resumeSupported;
+    const bool isYoutube = m_metrics.url.contains(QStringLiteral("googlevideo.com"), Qt::CaseInsensitive);
+    const bool preservePart = isResuming && m_metrics.resumeSupported && !(isYoutube && m_metrics.segments.size() > 1);
     if (!m_diskWriter.openAndPreallocate(m_metrics.fullSavePath(), m_metrics.totalBytes, preservePart, &diskErr)) {
         m_metrics.errorMessage = diskErr;
         appendLog(QStringLiteral("[DiskError] %1").arg(diskErr));
-        setState(core::TaskState::Failed);
-        return;
+        setState(core::TaskState::Failed); return;
     }
     if (!preservePart || m_metrics.segments.isEmpty()) {
         m_metrics.segments.clear();
         m_metrics.downloadedBytes = 0;
         const int tokenPermitted = (m_capabilityToken != nullptr)
-            ? m_capabilityToken->resolvePermittedSegments(m_metrics.maxSegments)
-            : std::clamp(m_metrics.maxSegments, 1, 32);
-        const int maxAllowed = m_metrics.url.contains(QStringLiteral("googlevideo.com"), Qt::CaseInsensitive)
-            ? std::min(tokenPermitted, 2) : tokenPermitted;
+            ? m_capabilityToken->resolvePermittedSegments(m_metrics.maxSegments) : std::clamp(m_metrics.maxSegments, 1, 32);
+        const int maxAllowed = isYoutube ? 1 : tokenPermitted;
         const int segCount = (!m_metrics.resumeSupported || m_metrics.totalBytes < 512 * 1024) ? 1 : maxAllowed;
         if (m_metrics.totalBytes > 0) {
             const qint64 chunk = m_metrics.totalBytes / segCount;
             for (int i = 0; i < segCount; ++i) {
                 m_metrics.segments.append(core::SegmentInfo{i + 1, i * chunk, i * chunk,
-                    (i == segCount - 1) ? (m_metrics.totalBytes - 1) : ((i + 1) * chunk - 1),
-                    0, core::SegmentState::Idle, {}});
+                    (i == segCount - 1) ? (m_metrics.totalBytes - 1) : ((i + 1) * chunk - 1), 0, core::SegmentState::Idle, {}});
             }
         } else {
             m_metrics.segments.append(core::SegmentInfo{1, 0, 0, -1, 0, core::SegmentState::Idle, {}});

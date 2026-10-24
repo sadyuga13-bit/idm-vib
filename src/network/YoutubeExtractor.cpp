@@ -25,16 +25,16 @@ struct InnertubeClientProfile {
 
 constexpr InnertubeClientProfile kClientProfiles[] = {
     {
-        "ANDROID_VR", "1.60.19", "Oculus", "Quest 3", "Android", "12L", 32,
-        "com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip"
+        "ANDROID", "20.10.38", "Google", "Pixel 8 Pro", "Android", "14", 34,
+        "com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip"
     },
     {
         "IOS", "20.10.4", "Apple", "iPhone16,2", "iPhone", "18.3.1.22D72", 0,
         "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_1 like Mac OS X;)"
     },
     {
-        "ANDROID", "20.10.38", "Google", "Pixel 8 Pro", "Android", "14", 34,
-        "com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip"
+        "ANDROID_VR", "1.62.27", "Oculus", "Quest 3", "Android", "12L", 32,
+        "com.google.android.apps.youtube.vr.oculus/1.62.27 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip"
     }
 };
 } // namespace
