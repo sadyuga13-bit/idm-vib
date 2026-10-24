@@ -14,12 +14,15 @@
 #include "ui/theme/ThemeTokens.h"
 #include <QApplication>
 #include <QDesktopServices>
+#include <QGuiApplication>
 #include <QHeaderView>
 #include <QMenu>
+#include <QScreen>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <algorithm>
 
 namespace idm::ui {
 
@@ -32,7 +35,10 @@ using theme::ThemeTokens;
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setWindowTitle(i18n::trText(QStringLiteral("app.title"), QStringLiteral("IDM Vibe")));
     setWindowIcon(IconRegistry::icon(IconId::CategoryAll, 20));
-    resize(1280, 760);
+    setMinimumSize(780, 480);
+    const QRect avail = QGuiApplication::primaryScreen()
+        ? QGuiApplication::primaryScreen()->availableGeometry() : QRect(0, 0, 1280, 760);
+    resize(std::clamp(int(avail.width() * 0.85), 820, 1260), std::clamp(int(avail.height() * 0.84), 520, 750));
 
     (void)m_dbManager.initialize();
     m_licenseCoordinator.initialize();
@@ -50,11 +56,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     m_scheduler->loadPersistedTasks();
     for (network::DownloadTask* t : m_scheduler->tasks()) { bindTaskPopups(t); }
 }
-
 void MainWindow::closeEvent(QCloseEvent* event) {
     if (!m_forceQuit && AppConfig::instance().closeToTray()) {
-        event->ignore();
-        hide();
+        event->ignore(); hide();
         m_trayController.showNotification(QStringLiteral("IDM Vibe"),
             i18n::I18nManager::instance().isRightToLeft()
                 ? QStringLiteral("يعمل البرنامج في الخلفية بجانب الساعة لالتقاط التحميلات.")
@@ -122,11 +126,13 @@ void MainWindow::setupUi() {
 }
 void MainWindow::setupStatusBar() {
     auto* sb = statusBar();
-    sb->setSizeGripEnabled(false);
+    sb->setSizeGripEnabled(true);
     m_lblIpcStatus = new QLabel(this);
     m_lblIpcStatus->setFont(ThemeTokens::monoFont(false));
+    m_lblIpcStatus->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    m_lblIpcStatus->setMinimumWidth(0);
     m_lblIpcStatus->setText(m_ipcServer.isListening()
-        ? QStringLiteral("CHROME IPC 127.0.0.1:%1 [LISTENING]  |  YOUTUBE INNERTUBE [READY]  |  HWID: %2")
+        ? QStringLiteral("CHROME IPC 127.0.0.1:%1 [LISTENING]  |  VIBETUBE ENGINE [READY]  |  HWID: %2")
               .arg(m_ipcServer.serverPort()).arg(m_licenseCoordinator.currentHwid().compositeFingerprint())
         : QStringLiteral("CHROME IPC [UNAVAILABLE]  |  SQLite WAL [READY]"));
     sb->addWidget(m_lblIpcStatus, 1);
@@ -224,14 +230,12 @@ void MainWindow::toggleDayDarkTheme() {
     AppStyleSheet::setDayMode(nextDay);
     m_toolbar->refreshThemeIcons();
 }
-
 void MainWindow::openSettingsDialog() {
     settings::SettingsDialog dlg(this);
     connect(&dlg, &settings::SettingsDialog::settingsApplied, this, &MainWindow::applySavedPreferences);
     dlg.exec();
     m_toolbar->refreshThemeIcons();
 }
-
 void MainWindow::openAddDownloadDialog(const QString& prefillUrl, const network::RequestProfile& profile, const QString& suggestedFileName) {
     dialogs::AddDownloadDialog dlg(prefillUrl, profile, suggestedFileName, this);
     if (dlg.exec() == QDialog::Accepted) {
@@ -245,7 +249,6 @@ void MainWindow::openAddDownloadDialog(const QString& prefillUrl, const network:
         }
     }
 }
-
 void MainWindow::openBatchDownloadDialog() {
     dialogs::BatchDownloadDialog dlg(this);
     if (dlg.exec() == QDialog::Accepted) {
@@ -257,9 +260,7 @@ void MainWindow::openBatchDownloadDialog() {
         m_scheduler->startQueue(dlg.selectedQueue());
     }
 }
-
 void MainWindow::openLicenseDialog() { security::LicenseDialog dlg(&m_licenseCoordinator, this); dlg.exec(); }
-
 void MainWindow::onSelectionChanged() {
     network::DownloadTask* task = selectedTask();
     m_inspectorDock->inspectTask(task);
@@ -269,7 +270,6 @@ void MainWindow::onSelectionChanged() {
     const bool canPause = (st == core::TaskState::Active || st == core::TaskState::Probing);
     m_toolbar->setTaskActionsEnabled(canStart, canPause, true);
 }
-
 void MainWindow::onTableContextMenu(const QPoint& pos) {
     const QModelIndex idx = m_tableView->indexAt(pos);
     if (!idx.isValid()) return;

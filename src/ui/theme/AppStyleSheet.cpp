@@ -94,13 +94,13 @@ QString AppStyleSheet::buildGlobalStyleSheet() {
         QTabBar::tab:hover { background-color: %5; color: %8; }
         QTabBar::tab:selected { background-color: %2; color: %8; border-bottom: 2px solid %11; }
         QLineEdit, QSpinBox, QComboBox, QTimeEdit, QPlainTextEdit {
-            background-color: %2; color: %8; border: 1px solid %7; border-radius: 6px; padding: 5px 10px;
+            background-color: %2; color: %8; border: 1px solid %7; border-radius: 6px; padding: 4px 8px; min-height: 22px;
         }
         QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QTimeEdit:focus, QPlainTextEdit:focus {
             border: 1px solid %11;
         }
         QPushButton, QToolButton {
-            background-color: %3; color: %8; border: 1px solid %7; border-radius: 6px; padding: 5px 12px; font-weight: 500;
+            background-color: %3; color: %8; border: 1px solid %7; border-radius: 6px; padding: 4px 10px; min-height: 22px; font-weight: 500;
         }
         QPushButton:hover, QToolButton:hover { background-color: %5; border-color: %11; }
         QPushButton:pressed, QToolButton:pressed { background-color: %6; border-color: %11; }

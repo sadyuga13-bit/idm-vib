@@ -4,6 +4,7 @@
 #include "ui/security/LicenseStatusBadge.h"
 #include <QLabel>
 #include <QLineEdit>
+#include <QResizeEvent>
 #include <QSpinBox>
 #include <QToolButton>
 #include <QWidget>
@@ -16,6 +17,8 @@ class TopToolbar final : public QWidget {
 public:
     explicit TopToolbar(QWidget* parent = nullptr);
     ~TopToolbar() override = default;
+
+    [[nodiscard]] QSize minimumSizeHint() const override { return QSize(640, 48); }
 
     void setTaskActionsEnabled(bool canStart, bool canPause, bool canDelete);
     void updateAggregateSpeed(qint64 bytesPerSec, int activeCount);
@@ -38,7 +41,11 @@ signals:
     void globalSpeedLimitChanged(qint64 kibPerSec);
     void searchQueryChanged(const QString& text);
 
+protected:
+    void resizeEvent(QResizeEvent* event) override;
+
 private:
+    void applyResponsiveButtonMode(int availableWidth);
     static QToolButton* createActionBtn(
         const QString& text,
         const QIcon& icon,

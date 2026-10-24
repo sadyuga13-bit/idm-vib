@@ -25,8 +25,8 @@ constexpr int kTypeQueue = 2;
 
 SidebarTree::SidebarTree(QWidget* parent)
     : QWidget(parent) {
-    setMinimumWidth(200);
-    setMaximumWidth(270);
+    setMinimumWidth(185);
+    setMaximumWidth(250);
     setAttribute(Qt::WA_StyledBackground, true);
 
     auto* mainLayout = new QVBoxLayout(this);
@@ -43,20 +43,28 @@ SidebarTree::SidebarTree(QWidget* parent)
 
     auto* queuePanel = new QWidget(this);
     auto* qLayout = new QHBoxLayout(queuePanel);
-    qLayout->setContentsMargins(10, 8, 10, 8);
+    qLayout->setContentsMargins(8, 8, 8, 8);
     qLayout->setSpacing(6);
 
-    m_btnStartQueue = new QPushButton(QStringLiteral("Start Queue"), queuePanel);
+    m_btnStartQueue = new QPushButton(QStringLiteral("Start"), queuePanel);
+    m_btnStartQueue->setToolTip(QStringLiteral("Start Selected Queue"));
     m_btnStartQueue->setIcon(IconRegistry::icon(IconId::StartPlay, 14));
-    m_btnStopQueue = new QPushButton(QStringLiteral("Stop Queue"), queuePanel);
+    m_btnStartQueue->setFixedHeight(30);
+    m_btnStartQueue->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    m_btnStopQueue = new QPushButton(QStringLiteral("Stop"), queuePanel);
+    m_btnStopQueue->setToolTip(QStringLiteral("Stop Selected Queue"));
     m_btnStopQueue->setIcon(IconRegistry::icon(IconId::StopSquare, 14));
-    qLayout->addWidget(m_btnStartQueue);
-    qLayout->addWidget(m_btnStopQueue);
+    m_btnStopQueue->setFixedHeight(30);
+    m_btnStopQueue->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    qLayout->addWidget(m_btnStartQueue, 1);
+    qLayout->addWidget(m_btnStopQueue, 1);
     mainLayout->addWidget(queuePanel);
 
     auto* diskFooter = new QWidget(this);
     auto* diskLayout = new QVBoxLayout(diskFooter);
-    diskLayout->setContentsMargins(12, 10, 12, 10);
+    diskLayout->setContentsMargins(10, 8, 10, 10);
     diskLayout->setSpacing(5);
 
     auto* titleRow = new QHBoxLayout();
@@ -64,6 +72,7 @@ SidebarTree::SidebarTree(QWidget* parent)
     driveIcon->setPixmap(IconRegistry::pixmap(IconId::HardDrive, 15, IconState::Normal));
     m_lblDrivePath = new QLabel(QStringLiteral("STORAGE VOLUME"), diskFooter);
     m_lblDrivePath->setStyleSheet(QStringLiteral("font-size: 11px; font-weight: 600;"));
+    m_lblDrivePath->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     titleRow->addWidget(driveIcon);
     titleRow->addWidget(m_lblDrivePath, 1);
     diskLayout->addLayout(titleRow);
@@ -71,7 +80,7 @@ SidebarTree::SidebarTree(QWidget* parent)
     m_diskBar = new QProgressBar(diskFooter);
     m_diskBar->setRange(0, 100);
     m_diskBar->setTextVisible(false);
-    m_diskBar->setFixedHeight(4);
+    m_diskBar->setFixedHeight(5);
     m_diskBar->setStyleSheet(QStringLiteral(
         "QProgressBar { background-color: rgba(128,128,128,45); border: none; border-radius: 2px; }"
         "QProgressBar::chunk { background-color: #3B82F6; border-radius: 2px; }"
@@ -80,6 +89,7 @@ SidebarTree::SidebarTree(QWidget* parent)
 
     m_lblDiskNumbers = new QLabel(diskFooter);
     m_lblDiskNumbers->setFont(ThemeTokens::monoFont(false));
+    m_lblDiskNumbers->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     diskLayout->addWidget(m_lblDiskNumbers);
 
     mainLayout->addWidget(diskFooter);

@@ -93,6 +93,8 @@ QWidget* DownloadProgressDialog::buildStatusTab() {
     auto makeMono = [infoBox]() {
         auto* l = new QLabel(QStringLiteral("--"), infoBox);
         l->setFont(ThemeTokens::monoFont(false));
+        l->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+        l->setMinimumWidth(0);
         return l;
     };
     m_lblUrl = makeMono();

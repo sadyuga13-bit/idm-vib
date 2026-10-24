@@ -28,7 +28,8 @@ AddDownloadDialog::AddDownloadDialog(
 )
     : QDialog(parent) {
     setWindowTitle(QStringLiteral("Add New Download / YouTube Stream"));
-    setMinimumWidth(610);
+    setMinimumWidth(520);
+    resize(620, 500);
 
     const AppSettings& cfg = AppSettings::instance();
     auto* rootLayout = new QVBoxLayout(this);
@@ -38,6 +39,7 @@ AddDownloadDialog::AddDownloadDialog(
     auto* targetBox = new QGroupBox(QStringLiteral("Endpoint & Target Configuration"), this);
     auto* targetForm = new QFormLayout(targetBox);
     targetForm->setSpacing(8);
+    targetForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 
     auto* urlRow = new QHBoxLayout();
     m_urlEdit = new QLineEdit(initialUrl, targetBox);
@@ -50,6 +52,8 @@ AddDownloadDialog::AddDownloadDialog(
 
     m_lblProbeStatus = new QLabel(QStringLiteral("Ready to probe remote server or YouTube Innertube API."), targetBox);
     m_lblProbeStatus->setFont(ThemeTokens::monoFont(false));
+    m_lblProbeStatus->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    m_lblProbeStatus->setMinimumWidth(0);
     targetForm->addRow(QStringLiteral("Stream Probe:"), m_lblProbeStatus);
 
     m_ytQualityCombo = new QComboBox(targetBox);

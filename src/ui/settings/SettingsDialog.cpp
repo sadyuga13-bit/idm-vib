@@ -9,9 +9,14 @@
 #include "ui/settings/SavePathsSettingsPage.h"
 #include "ui/theme/IconRegistry.h"
 #include "ui/theme/ThemeTokens.h"
+#include <QFrame>
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QPushButton>
+#include <QScreen>
+#include <QScrollArea>
 #include <QVBoxLayout>
+#include <algorithm>
 
 namespace idm::ui::settings {
 
@@ -19,26 +24,31 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     : QDialog(parent) {
     auto& trMgr = i18n::I18nManager::instance();
     setWindowTitle(trMgr.trKey(QStringLiteral("settings.title")));
-    setMinimumSize(780, 560);
+
+    const QRect avail = QGuiApplication::primaryScreen()
+        ? QGuiApplication::primaryScreen()->availableGeometry()
+        : QRect(0, 0, 1280, 760);
+    setMinimumSize(std::min(680, avail.width() - 40), std::min(460, avail.height() - 40));
+    resize(std::min(820, int(avail.width() * 0.78)), std::min(580, int(avail.height() * 0.80)));
 
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(14, 14, 14, 14);
     root->setSpacing(12);
 
     auto* contentLayout = new QHBoxLayout();
-    contentLayout->setSpacing(14);
+    contentLayout->setSpacing(12);
 
     m_navList = new QListWidget(this);
-    m_navList->setFixedWidth(215);
+    m_navList->setFixedWidth(205);
     m_navList->setIconSize(QSize(18, 18));
-    m_navList->setSpacing(4);
+    m_navList->setSpacing(3);
 
     const auto addNavItem = [this, &trMgr](const QString& key, theme::IconId icon) {
         auto* item = new QListWidgetItem(
             theme::IconRegistry::icon(icon, 18),
             trMgr.trKey(key),
             m_navList);
-        item->setSizeHint(QSize(200, 38));
+        item->setSizeHint(QSize(190, 36));
     };
 
     addNavItem(QStringLiteral("settings.page.general"), theme::IconId::SettingsGear);
@@ -56,12 +66,22 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     m_proxyPage = new ProxyAndLoginsPage(this);
     m_completionPage = new CompletionAndAvPage(this);
 
-    m_stack->addWidget(m_generalPage);
-    m_stack->addWidget(m_fileTypesPage);
-    m_stack->addWidget(m_savePathsPage);
-    m_stack->addWidget(m_connectionPage);
-    m_stack->addWidget(m_proxyPage);
-    m_stack->addWidget(m_completionPage);
+    auto wrapScroll = [this](QWidget* page) {
+        page->setMinimumWidth(0);
+        auto* scroll = new QScrollArea(m_stack);
+        scroll->setWidget(page);
+        scroll->setWidgetResizable(true);
+        scroll->setFrameShape(QFrame::NoFrame);
+        scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        return scroll;
+    };
+
+    m_stack->addWidget(wrapScroll(m_generalPage));
+    m_stack->addWidget(wrapScroll(m_fileTypesPage));
+    m_stack->addWidget(wrapScroll(m_savePathsPage));
+    m_stack->addWidget(wrapScroll(m_connectionPage));
+    m_stack->addWidget(wrapScroll(m_proxyPage));
+    m_stack->addWidget(wrapScroll(m_completionPage));
 
     connect(m_navList, &QListWidget::currentRowChanged, m_stack, &QStackedWidget::setCurrentIndex);
     m_navList->setCurrentRow(0);
@@ -74,11 +94,13 @@ SettingsDialog::SettingsDialog(QWidget* parent)
     footer->addStretch(1);
 
     auto* btnCancel = new QPushButton(trMgr.trKey(QStringLiteral("settings.btn.cancel")), this);
+    btnCancel->setMinimumHeight(32);
     connect(btnCancel, &QPushButton::clicked, this, &QDialog::reject);
     footer->addWidget(btnCancel);
 
     auto* btnSave = new QPushButton(trMgr.trKey(QStringLiteral("settings.btn.save")), this);
     btnSave->setObjectName(QStringLiteral("PrimaryButton"));
+    btnSave->setMinimumHeight(32);
     btnSave->setDefault(true);
     connect(btnSave, &QPushButton::clicked, this, &SettingsDialog::onSaveAndApply);
     footer->addWidget(btnSave);

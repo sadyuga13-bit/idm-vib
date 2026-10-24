@@ -37,6 +37,9 @@ DownloadCompleteDialog::DownloadCompleteDialog(const core::TaskMetrics& metrics,
         auto* l = new QLabel(txt, box);
         l->setFont(ThemeTokens::monoFont(false));
         l->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        l->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+        l->setMinimumWidth(0);
+        l->setToolTip(txt);
         return l;
     };
 
