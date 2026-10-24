@@ -22,25 +22,25 @@ ProxyAndLoginsPage::ProxyAndLoginsPage(QWidget* parent)
     root->setSpacing(10);
 
     auto* proxyGroup = new QGroupBox(
-        ar ? QStringLiteral("إعدادات خادم البروكسي (HTTP / HTTPS / SOCKS5)")
-           : QStringLiteral("Network Proxy Configuration (HTTP / HTTPS / SOCKS5)"), this);
+        ar ? QStringLiteral("الوكيل (Proxy / Socks)")
+           : QStringLiteral("Proxy / Socks"), this);
     auto* form = new QFormLayout(proxyGroup);
     form->setSpacing(8);
 
     m_proxyModeCombo = new QComboBox(this);
-    m_proxyModeCombo->addItem(ar ? QStringLiteral("اتصال مباشر بدون بروكسي (Direct)")
-                                 : QStringLiteral("No Proxy (Direct Connection)"),
+    m_proxyModeCombo->addItem(ar ? QStringLiteral("بدون وكيل (اتصال مباشر)")
+                                 : QStringLiteral("No proxy (direct connection)"),
                               static_cast<int>(config::ProxyMode::DirectConnection));
-    m_proxyModeCombo->addItem(ar ? QStringLiteral("استخدام إعدادات بروكسي النظام (WinHTTP)")
-                                 : QStringLiteral("Use System Proxy Settings (WinHTTP)"),
+    m_proxyModeCombo->addItem(ar ? QStringLiteral("استخدام إعدادات النظام")
+                                 : QStringLiteral("Use system settings"),
                               static_cast<int>(config::ProxyMode::SystemWinHttp));
-    m_proxyModeCombo->addItem(ar ? QStringLiteral("إعداد خادم بروكسي يدوي (Manual Proxy)")
-                                 : QStringLiteral("Manual Proxy Server Configuration"),
+    m_proxyModeCombo->addItem(ar ? QStringLiteral("إعداد يدوي للوكيل")
+                                 : QStringLiteral("Manual proxy configuration"),
                               static_cast<int>(config::ProxyMode::ManualProxy));
     m_proxyModeCombo->setCurrentIndex(static_cast<int>(cfg.proxyMode()));
     connect(m_proxyModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this](int) { updateProxyFieldsState(); });
-    form->addRow(ar ? QStringLiteral("وضع الاتصال:") : QStringLiteral("Proxy Mode:"), m_proxyModeCombo);
+    form->addRow(ar ? QStringLiteral("الإعداد:") : QStringLiteral("Mode:"), m_proxyModeCombo);
 
     auto* hostRow = new QHBoxLayout();
     m_proxyProtoCombo = new QComboBox(this);
@@ -59,39 +59,39 @@ ProxyAndLoginsPage::ProxyAndLoginsPage(QWidget* parent)
     hostRow->addWidget(m_proxyHostEdit, 1);
     hostRow->addWidget(new QLabel(ar ? QStringLiteral("المنفذ:") : QStringLiteral("Port:"), this));
     hostRow->addWidget(m_proxyPortSpin);
-    form->addRow(ar ? QStringLiteral("عنوان الخادم:") : QStringLiteral("Proxy Server:"), hostRow);
+    form->addRow(ar ? QStringLiteral("الخادم:") : QStringLiteral("Server:"), hostRow);
 
     auto* authRow = new QHBoxLayout();
     m_proxyUserEdit = new QLineEdit(cfg.proxyUsername(), this);
-    m_proxyUserEdit->setPlaceholderText(ar ? QStringLiteral("اسم المستخدم (اختياري)") : QStringLiteral("Username (optional)"));
+    m_proxyUserEdit->setPlaceholderText(ar ? QStringLiteral("اسم المستخدم") : QStringLiteral("Username"));
     m_proxyPassEdit = new QLineEdit(cfg.proxyPassword(), this);
     m_proxyPassEdit->setEchoMode(QLineEdit::Password);
-    m_proxyPassEdit->setPlaceholderText(ar ? QStringLiteral("كلمة المرور (اختياري)") : QStringLiteral("Password (optional)"));
+    m_proxyPassEdit->setPlaceholderText(ar ? QStringLiteral("كلمة المرور") : QStringLiteral("Password"));
     authRow->addWidget(m_proxyUserEdit, 1);
     authRow->addWidget(m_proxyPassEdit, 1);
-    form->addRow(ar ? QStringLiteral("مصادقة البروكسي:") : QStringLiteral("Proxy Auth:"), authRow);
+    form->addRow(ar ? QStringLiteral("المصادقة:") : QStringLiteral("Authentication:"), authRow);
 
     m_proxyBypassEdit = new QLineEdit(cfg.proxyBypassList().join(QStringLiteral(", ")), this);
-    form->addRow(ar ? QStringLiteral("استثناء النطاقات:") : QStringLiteral("Bypass Hosts:"), m_proxyBypassEdit);
+    form->addRow(ar ? QStringLiteral("عدم استخدام الوكيل مع:") : QStringLiteral("Exceptions:"), m_proxyBypassEdit);
     root->addWidget(proxyGroup);
 
     auto* vaultGroup = new QGroupBox(
-        ar ? QStringLiteral("خزنة كلمات مرور المواقع المشفرة بـ Windows DPAPI (Site Logins)")
-           : QStringLiteral("DPAPI-Encrypted Site Login Vault (Auto-Authentication)"), this);
+        ar ? QStringLiteral("تسجيل الدخول للمواقع")
+           : QStringLiteral("Site Logins"), this);
     auto* vaultLayout = new QVBoxLayout(vaultGroup);
 
     auto* addSiteRow = new QHBoxLayout();
     m_siteDomainEdit = new QLineEdit(this);
-    m_siteDomainEdit->setPlaceholderText(ar ? QStringLiteral("النطاق (مثال: files.example.com)")
-                                            : QStringLiteral("Host / Domain (e.g. files.example.com)"));
+    m_siteDomainEdit->setPlaceholderText(ar ? QStringLiteral("الموقع (مثال: example.com)")
+                                            : QStringLiteral("Server / Domain (e.g. example.com)"));
     m_siteUserEdit = new QLineEdit(this);
     m_siteUserEdit->setPlaceholderText(ar ? QStringLiteral("اسم المستخدم") : QStringLiteral("Username"));
     m_sitePassEdit = new QLineEdit(this);
     m_sitePassEdit->setEchoMode(QLineEdit::Password);
     m_sitePassEdit->setPlaceholderText(ar ? QStringLiteral("كلمة المرور") : QStringLiteral("Password"));
 
-    auto* btnAddSite = new QPushButton(ar ? QStringLiteral("حفظ في الخزنة") : QStringLiteral("Save Login"), this);
-    auto* btnRemSite = new QPushButton(ar ? QStringLiteral("حذف المحدد") : QStringLiteral("Delete Selected"), this);
+    auto* btnAddSite = new QPushButton(ar ? QStringLiteral("إضافة") : QStringLiteral("Add"), this);
+    auto* btnRemSite = new QPushButton(ar ? QStringLiteral("حذف") : QStringLiteral("Delete"), this);
     connect(btnAddSite, &QPushButton::clicked, this, &ProxyAndLoginsPage::onAddSiteLoginClicked);
     connect(btnRemSite, &QPushButton::clicked, this, &ProxyAndLoginsPage::onRemoveSiteLoginClicked);
 
@@ -104,9 +104,9 @@ ProxyAndLoginsPage::ProxyAndLoginsPage(QWidget* parent)
 
     m_vaultTable = new QTableWidget(0, 3, this);
     m_vaultTable->setHorizontalHeaderLabels({
-        ar ? QStringLiteral("النطاق / السيرفر") : QStringLiteral("Server / Domain"),
-        ar ? QStringLiteral("اسم المستخدم") : QStringLiteral("Username"),
-        ar ? QStringLiteral("حالة التشفير") : QStringLiteral("Protection")
+        ar ? QStringLiteral("الموقع") : QStringLiteral("Server"),
+        ar ? QStringLiteral("اسم المستخدم") : QStringLiteral("User"),
+        ar ? QStringLiteral("الحالة") : QStringLiteral("Status")
     });
     m_vaultTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_vaultTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);

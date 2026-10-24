@@ -29,7 +29,8 @@ DownloadCompleteDialog::DownloadCompleteDialog(const core::TaskMetrics& metrics,
     root->setContentsMargins(16, 16, 16, 16);
     root->setSpacing(12);
 
-    auto* box = new QGroupBox(QStringLiteral("Completed File & Security Verification"), this);
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
+    auto* box = new QGroupBox(ar ? QStringLiteral("تفاصيل الملف") : QStringLiteral("File Details"), this);
     auto* form = new QFormLayout(box);
     form->setSpacing(8);
 
@@ -43,15 +44,15 @@ DownloadCompleteDialog::DownloadCompleteDialog(const core::TaskMetrics& metrics,
         return l;
     };
 
-    form->addRow(QStringLiteral("File Name:"), makeLbl(m_metrics.fileName));
-    form->addRow(QStringLiteral("Total Size:"), makeLbl(core::FormatUtils::formatBytes(m_metrics.totalBytes)));
-    form->addRow(QStringLiteral("Saved To:"), makeLbl(m_metrics.fullSavePath()));
+    form->addRow(ar ? QStringLiteral("اسم الملف:") : QStringLiteral("File name:"), makeLbl(m_metrics.fileName));
+    form->addRow(ar ? QStringLiteral("الحجم:") : QStringLiteral("Size:"), makeLbl(core::FormatUtils::formatBytes(m_metrics.totalBytes)));
+    form->addRow(ar ? QStringLiteral("تم الحفظ في:") : QStringLiteral("Saved to:"), makeLbl(m_metrics.fullSavePath()));
     form->addRow(QStringLiteral("SHA-256:"), makeLbl(m_metrics.computedSha256.isEmpty()
-                                                        ? QStringLiteral("Verified") : m_metrics.computedSha256));
+                                                        ? (ar ? QStringLiteral("سليم") : QStringLiteral("Verified")) : m_metrics.computedSha256));
 
-    m_lblAvStatus = makeLbl(QStringLiteral("Scanning with Windows Defender / Antivirus..."));
+    m_lblAvStatus = makeLbl(ar ? QStringLiteral("جارٍ الفحص...") : QStringLiteral("Scanning..."));
     m_lblAvStatus->setStyleSheet(QStringLiteral("color: #3B82F6;"));
-    form->addRow(QStringLiteral("Antivirus Scan:"), m_lblAvStatus);
+    form->addRow(ar ? QStringLiteral("فحص الحماية:") : QStringLiteral("Virus scan:"), m_lblAvStatus);
     root->addWidget(box);
 
     auto* btnRow = new QHBoxLayout();

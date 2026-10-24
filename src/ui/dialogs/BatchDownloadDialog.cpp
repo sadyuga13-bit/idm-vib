@@ -1,5 +1,6 @@
 #include "ui/dialogs/BatchDownloadDialog.h"
 #include "core/BatchExpander.h"
+#include "i18n/I18nManager.h"
 #include "storage/CategoryRouter.h"
 #include "ui/theme/IconRegistry.h"
 #include "ui/theme/ThemeTokens.h"
@@ -22,30 +23,31 @@ using theme::ThemeTokens;
 
 BatchDownloadDialog::BatchDownloadDialog(QWidget* parent)
     : QDialog(parent) {
-    setWindowTitle(QStringLiteral("Batch Sequence & Pattern Generator"));
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
+    setWindowTitle(ar ? QStringLiteral("تحميل دفعة روابط") : QStringLiteral("Batch Download"));
     setMinimumSize(620, 480);
 
     auto* rootLayout = new QVBoxLayout(this);
     rootLayout->setContentsMargins(16, 16, 16, 16);
     rootLayout->setSpacing(12);
 
-    auto* patternBox = new QGroupBox(QStringLiteral("Pattern Expression"), this);
+    auto* patternBox = new QGroupBox(ar ? QStringLiteral("إعدادات الدفعة") : QStringLiteral("Batch Settings"), this);
     auto* form = new QFormLayout(patternBox);
     form->setSpacing(8);
 
     m_modeCombo = new QComboBox(patternBox);
     m_modeCombo->addItems({
-        QStringLiteral("Bracket Range Expression ([01-50] or [a-z])"),
-        QStringLiteral("Wildcard Numeric Asterisk (*)")
+        ar ? QStringLiteral("نطاق بين أقواس ([01-50] أو [a-z])") : QStringLiteral("Bracket Range ([01-50] or [a-z])"),
+        ar ? QStringLiteral("نجمة رقمية (*)") : QStringLiteral("Wildcard Asterisk (*)")
     });
-    form->addRow(QStringLiteral("Syntax Mode:"), m_modeCombo);
+    form->addRow(ar ? QStringLiteral("النمط:") : QStringLiteral("Mode:"), m_modeCombo);
 
     m_patternEdit = new QLineEdit(
         QStringLiteral("https://cdn.example.com/archive-[01-12].zip"),
         patternBox
     );
     m_patternEdit->setFont(ThemeTokens::monoFont(false));
-    form->addRow(QStringLiteral("Pattern URL:"), m_patternEdit);
+    form->addRow(ar ? QStringLiteral("الرابط:") : QStringLiteral("Address:"), m_patternEdit);
 
     auto* rangeRow = new QHBoxLayout();
     m_startSpin = new QSpinBox(patternBox);
@@ -61,26 +63,26 @@ BatchDownloadDialog::BatchDownloadDialog(QWidget* parent)
     m_padSpin->setRange(0, 8);
     m_padSpin->setValue(2);
 
-    rangeRow->addWidget(new QLabel(QStringLiteral("From:"), patternBox));
+    rangeRow->addWidget(new QLabel(ar ? QStringLiteral("من:") : QStringLiteral("From:"), patternBox));
     rangeRow->addWidget(m_startSpin);
-    rangeRow->addWidget(new QLabel(QStringLiteral("To:"), patternBox));
+    rangeRow->addWidget(new QLabel(ar ? QStringLiteral("إلى:") : QStringLiteral("To:"), patternBox));
     rangeRow->addWidget(m_endSpin);
-    rangeRow->addWidget(new QLabel(QStringLiteral("Step:"), patternBox));
+    rangeRow->addWidget(new QLabel(ar ? QStringLiteral("الخطوة:") : QStringLiteral("Step:"), patternBox));
     rangeRow->addWidget(m_stepSpin);
-    rangeRow->addWidget(new QLabel(QStringLiteral("Zero-Pad:"), patternBox));
+    rangeRow->addWidget(new QLabel(ar ? QStringLiteral("الأصفار:") : QStringLiteral("Width:"), patternBox));
     rangeRow->addWidget(m_padSpin);
-    form->addRow(QStringLiteral("Wildcard Range:"), rangeRow);
+    form->addRow(ar ? QStringLiteral("النطاق:") : QStringLiteral("Range:"), rangeRow);
 
     auto* dirRow = new QHBoxLayout();
     m_saveDirEdit = new QLineEdit(
         CategoryRouter::defaultDirectoryForCategory(core::FileCategory::Archive),
         patternBox
     );
-    auto* btnBrowse = new QPushButton(QStringLiteral("Browse"), patternBox);
+    auto* btnBrowse = new QPushButton(ar ? QStringLiteral("استعراض...") : QStringLiteral("Browse..."), patternBox);
     btnBrowse->setIcon(IconRegistry::icon(IconId::FolderOpen, 14));
     dirRow->addWidget(m_saveDirEdit, 1);
     dirRow->addWidget(btnBrowse);
-    form->addRow(QStringLiteral("Save Directory:"), dirRow);
+    form->addRow(ar ? QStringLiteral("الحفظ في:") : QStringLiteral("Save to:"), dirRow);
 
     auto* queueRow = new QHBoxLayout();
     m_queueCombo = new QComboBox(patternBox);
@@ -88,15 +90,14 @@ BatchDownloadDialog::BatchDownloadDialog(QWidget* parent)
     m_segmentsSpin = new QSpinBox(patternBox);
     m_segmentsSpin->setRange(1, 32);
     m_segmentsSpin->setValue(4);
-    m_segmentsSpin->setSuffix(QStringLiteral(" threads/file"));
     queueRow->addWidget(m_queueCombo, 1);
-    queueRow->addWidget(new QLabel(QStringLiteral("Segments:"), patternBox));
+    queueRow->addWidget(new QLabel(ar ? QStringLiteral("الاتصالات:") : QStringLiteral("Connections:"), patternBox));
     queueRow->addWidget(m_segmentsSpin);
-    form->addRow(QStringLiteral("Target Queue:"), queueRow);
+    form->addRow(ar ? QStringLiteral("الطابور:") : QStringLiteral("Queue:"), queueRow);
 
     rootLayout->addWidget(patternBox);
 
-    auto* previewGroup = new QGroupBox(QStringLiteral("Expanded URL Preview"), this);
+    auto* previewGroup = new QGroupBox(ar ? QStringLiteral("معاينة الروابط") : QStringLiteral("Preview"), this);
     auto* previewLayout = new QVBoxLayout(previewGroup);
     m_statusLabel = new QLabel(previewGroup);
     m_statusLabel->setFont(ThemeTokens::monoFont(true));
@@ -109,8 +110,8 @@ BatchDownloadDialog::BatchDownloadDialog(QWidget* parent)
 
     auto* btnRow = new QHBoxLayout();
     btnRow->addStretch(1);
-    auto* btnCancel = new QPushButton(QStringLiteral("Cancel"), this);
-    auto* btnEnqueue = new QPushButton(QStringLiteral("Enqueue Batch"), this);
+    auto* btnCancel = new QPushButton(ar ? QStringLiteral("إلغاء") : QStringLiteral("Cancel"), this);
+    auto* btnEnqueue = new QPushButton(ar ? QStringLiteral("إضافة") : QStringLiteral("OK"), this);
     btnEnqueue->setObjectName(QStringLiteral("primaryActionBtn"));
     btnEnqueue->setIcon(QIcon(IconRegistry::pixmapColored(IconId::BatchSequence, 14, Qt::white)));
     btnRow->addWidget(btnCancel);

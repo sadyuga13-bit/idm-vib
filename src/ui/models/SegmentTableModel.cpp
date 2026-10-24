@@ -1,10 +1,15 @@
 #include "ui/models/SegmentTableModel.h"
+#include "i18n/I18nManager.h"
 #include "ui/theme/ThemeTokens.h"
 
 namespace idm::ui::models {
 
 SegmentTableModel::SegmentTableModel(QObject* parent)
-    : QAbstractTableModel(parent) {}
+    : QAbstractTableModel(parent) {
+    connect(&i18n::I18nManager::instance(), &i18n::I18nManager::languageChanged, this, [this]() {
+        emit headerDataChanged(Qt::Horizontal, 0, ColumnCount - 1);
+    });
+}
 
 void SegmentTableModel::setSegments(const QList<core::SegmentInfo>& segments) {
     if (m_segments.size() != segments.size()) {
@@ -127,14 +132,15 @@ QVariant SegmentTableModel::headerData(
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole) {
         return {};
     }
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
     switch (section) {
-        case ColId:         return QStringLiteral("Thread");
-        case ColRange:      return QStringLiteral("Byte Offset Range");
-        case ColDownloaded: return QStringLiteral("Received");
-        case ColRemaining:  return QStringLiteral("Remaining");
-        case ColProgress:   return QStringLiteral("Progress");
-        case ColSpeed:      return QStringLiteral("Speed");
-        case ColState:      return QStringLiteral("Status");
+        case ColId:         return QStringLiteral("#");
+        case ColRange:      return ar ? QStringLiteral("النطاق") : QStringLiteral("Range");
+        case ColDownloaded: return ar ? QStringLiteral("المحمل") : QStringLiteral("Downloaded");
+        case ColRemaining:  return ar ? QStringLiteral("المتبقي") : QStringLiteral("Remaining");
+        case ColProgress:   return ar ? QStringLiteral("التقدم") : QStringLiteral("Progress");
+        case ColSpeed:      return ar ? QStringLiteral("السرعة") : QStringLiteral("Speed");
+        case ColState:      return ar ? QStringLiteral("الحالة") : QStringLiteral("Status");
         default:            return {};
     }
 }

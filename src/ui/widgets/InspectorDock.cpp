@@ -60,7 +60,7 @@ InspectorDock::InspectorDock(QWidget* parent)
 
     const bool ar = i18n::I18nManager::instance().isRightToLeft();
     m_tabs->addTab(segPage, IconRegistry::icon(IconId::CpuThreads, 15),
-        ar ? QStringLiteral("المسارات وخريطة البايتات") : QStringLiteral("Segments & Byte Map"));
+        ar ? QStringLiteral("الاتصالات") : QStringLiteral("Connections"));
 
     auto* speedPage = new QWidget(m_tabs);
     auto* speedLayout = new QHBoxLayout(speedPage);
@@ -90,27 +90,27 @@ InspectorDock::InspectorDock(QWidget* parent)
 
     m_lblUrlValue = makeBoundedLabel(QStringLiteral("--"));
     m_lblPathValue = makeBoundedLabel(QStringLiteral("--"));
-    m_lblHashValue = makeBoundedLabel(ar ? QStringLiteral("بانتظار التحقق") : QStringLiteral("Not verified yet"));
+    m_lblHashValue = makeBoundedLabel(ar ? QStringLiteral("--") : QStringLiteral("--"));
 
-    form->addRow(ar ? QStringLiteral("الرابط المباشر:") : QStringLiteral("Endpoint URL:"), m_lblUrlValue);
-    form->addRow(ar ? QStringLiteral("مسار الحفظ:") : QStringLiteral("Disk Target:"), m_lblPathValue);
-    form->addRow(ar ? QStringLiteral("البصمة الرقمية:") : QStringLiteral("SHA-256 / MD5:"), m_lblHashValue);
+    form->addRow(ar ? QStringLiteral("الرابط:") : QStringLiteral("URL:"), m_lblUrlValue);
+    form->addRow(ar ? QStringLiteral("المسار:") : QStringLiteral("Path:"), m_lblPathValue);
+    form->addRow(QStringLiteral("SHA-256:"), m_lblHashValue);
     speedLayout->addWidget(metaBox, 2);
 
     m_tabs->addTab(speedPage, IconRegistry::icon(IconId::SpeedGauge, 15),
-        ar ? QStringLiteral("مؤشرات السرعة والأداء") : QStringLiteral("Throughput Telemetry"));
+        ar ? QStringLiteral("السرعة") : QStringLiteral("Speed"));
 
     m_logConsole = new QPlainTextEdit(m_tabs);
     m_logConsole->setReadOnly(true);
     m_logConsole->setFont(ThemeTokens::monoFont(false));
     m_tabs->addTab(m_logConsole, IconRegistry::icon(IconId::TerminalLog, 15),
-        ar ? QStringLiteral("سجل البروتوكول والمحرك") : QStringLiteral("Protocol & Engine Log"));
+        ar ? QStringLiteral("السجل") : QStringLiteral("Log"));
 
     connect(&i18n::I18nManager::instance(), &i18n::I18nManager::languageChanged, this, [this]() {
         const bool isAr = i18n::I18nManager::instance().isRightToLeft();
-        m_tabs->setTabText(0, isAr ? QStringLiteral("المسارات وخريطة البايتات") : QStringLiteral("Segments & Byte Map"));
-        m_tabs->setTabText(1, isAr ? QStringLiteral("مؤشرات السرعة والأداء") : QStringLiteral("Throughput Telemetry"));
-        m_tabs->setTabText(2, isAr ? QStringLiteral("سجل البروتوكول والمحرك") : QStringLiteral("Protocol & Engine Log"));
+        m_tabs->setTabText(0, isAr ? QStringLiteral("الاتصالات") : QStringLiteral("Connections"));
+        m_tabs->setTabText(1, isAr ? QStringLiteral("السرعة") : QStringLiteral("Speed"));
+        m_tabs->setTabText(2, isAr ? QStringLiteral("السجل") : QStringLiteral("Log"));
     });
 
     mainLayout->addWidget(m_tabs);

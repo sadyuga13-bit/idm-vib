@@ -128,16 +128,14 @@ void MainWindow::setupStatusBar() {
     auto* sb = statusBar();
     sb->setSizeGripEnabled(true);
     m_lblIpcStatus = new QLabel(this);
-    m_lblIpcStatus->setFont(ThemeTokens::monoFont(false));
+    m_lblIpcStatus->setFont(ThemeTokens::uiFont(false));
     m_lblIpcStatus->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     m_lblIpcStatus->setMinimumWidth(0);
-    m_lblIpcStatus->setText(m_ipcServer.isListening()
-        ? QStringLiteral("CHROME IPC 127.0.0.1:%1 [LISTENING]  |  VIBETUBE ENGINE [READY]  |  HWID: %2")
-              .arg(m_ipcServer.serverPort()).arg(m_licenseCoordinator.currentHwid().compositeFingerprint())
-        : QStringLiteral("CHROME IPC [UNAVAILABLE]  |  SQLite WAL [READY]"));
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
+    m_lblIpcStatus->setText(ar ? QStringLiteral("جاهز") : QStringLiteral("Ready"));
     sb->addWidget(m_lblIpcStatus, 1);
-    m_lblActiveTasks = new QLabel(QStringLiteral("ACTIVE TASKS: 0"), this);
-    m_lblActiveTasks->setFont(ThemeTokens::monoFont(true));
+    m_lblActiveTasks = new QLabel(ar ? QStringLiteral("التحميلات النشطة: 0") : QStringLiteral("Active downloads: 0"), this);
+    m_lblActiveTasks->setFont(ThemeTokens::uiFont(true));
     sb->addPermanentWidget(m_lblActiveTasks);
 }
 void MainWindow::wireSignals() {
@@ -177,7 +175,9 @@ void MainWindow::wireSignals() {
     connect(m_scheduler, &network::QueueScheduler::aggregateSpeedUpdated, this, [this](qint64 speedBps, int activeCount) {
         m_toolbar->updateAggregateSpeed(speedBps, activeCount);
         m_inspectorDock->pushGlobalSpeedSample(speedBps);
-        m_lblActiveTasks->setText(QStringLiteral("ACTIVE TASKS: %1").arg(activeCount));
+        const bool ar = i18n::I18nManager::instance().isRightToLeft();
+        m_lblActiveTasks->setText(ar ? QStringLiteral("التحميلات النشطة: %1").arg(activeCount)
+                                     : QStringLiteral("Active downloads: %1").arg(activeCount));
         m_trayController.updateSpeedTooltip(core::FormatUtils::formatSpeed(speedBps), activeCount);
         if (AppConfig::instance().preventSystemSleep()) {
             system::WindowsSystemIntegration::setPreventSystemSleep(activeCount > 0);
@@ -217,6 +217,7 @@ void MainWindow::bindTaskPopups(network::DownloadTask* task) {
 void MainWindow::applySavedPreferences() {
     const AppConfig& cfg = AppConfig::instance();
     setWindowTitle(i18n::trText(QStringLiteral("app.title"), QStringLiteral("IDM Vibe")));
+    m_lblIpcStatus->setText(i18n::I18nManager::instance().isRightToLeft() ? QStringLiteral("جاهز") : QStringLiteral("Ready"));
     m_clipboardWatcher.setEnabled(cfg.monitorClipboard());
     m_scheduler->globalSpeedLimiter()->setLimitKiBPerSec(cfg.globalSpeedLimitKiB());
     m_toolbar->setSpeedLimitValue(cfg.globalSpeedLimitKiB());
@@ -233,15 +234,13 @@ void MainWindow::toggleDayDarkTheme() {
 void MainWindow::openSettingsDialog() {
     settings::SettingsDialog dlg(this);
     connect(&dlg, &settings::SettingsDialog::settingsApplied, this, &MainWindow::applySavedPreferences);
-    dlg.exec();
-    m_toolbar->refreshThemeIcons();
+    dlg.exec(); m_toolbar->refreshThemeIcons();
 }
 void MainWindow::openAddDownloadDialog(const QString& prefillUrl, const network::RequestProfile& profile, const QString& suggestedFileName) {
     dialogs::AddDownloadDialog dlg(prefillUrl, profile, suggestedFileName, this);
     if (dlg.exec() == QDialog::Accepted) {
         network::DownloadTask* task = m_scheduler->addDownload(dlg.configuredMetrics(), dlg.configuredProfile(), dlg.startImmediately());
-        bindTaskPopups(task);
-        m_sidebar->refreshDiskTelemetry(task->metrics().saveDirectory);
+        bindTaskPopups(task); m_sidebar->refreshDiskTelemetry(task->metrics().saveDirectory);
         const int row = m_tableModel->rowForTaskId(task->taskId());
         if (row >= 0) { m_tableView->selectRow(row); }
         if (dlg.startImmediately() && AppConfig::instance().showLiveProgressDialog()) {
@@ -275,15 +274,16 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
     if (!idx.isValid()) return;
     m_tableView->selectRow(idx.row());
     if (!selectedTask()) return;
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
     QMenu menu(this);
-    connect(menu.addAction(IconRegistry::icon(IconId::StartPlay, 14), QStringLiteral("Resume Download")), &QAction::triggered, this, &MainWindow::resumeSelectedTask);
-    connect(menu.addAction(IconRegistry::icon(IconId::Pause, 14), QStringLiteral("Pause Download")), &QAction::triggered, this, &MainWindow::pauseSelectedTask);
+    connect(menu.addAction(IconRegistry::icon(IconId::StartPlay, 14), ar ? QStringLiteral("استئناف التحميل") : QStringLiteral("Resume Download")), &QAction::triggered, this, &MainWindow::resumeSelectedTask);
+    connect(menu.addAction(IconRegistry::icon(IconId::Pause, 14), ar ? QStringLiteral("إيقاف مؤقت") : QStringLiteral("Pause Download")), &QAction::triggered, this, &MainWindow::pauseSelectedTask);
     menu.addSeparator();
-    connect(menu.addAction(IconRegistry::icon(IconId::FolderOpen, 14), QStringLiteral("Open Save Directory")), &QAction::triggered, this, &MainWindow::openSelectedTaskFolder);
-    connect(menu.addAction(IconRegistry::icon(IconId::ShieldVerify, 14), QStringLiteral("Verify SHA-256 / MD5")), &QAction::triggered, this, &MainWindow::verifySelectedTaskHash);
+    connect(menu.addAction(IconRegistry::icon(IconId::FolderOpen, 14), ar ? QStringLiteral("فتح المجلد") : QStringLiteral("Open Folder")), &QAction::triggered, this, &MainWindow::openSelectedTaskFolder);
+    connect(menu.addAction(IconRegistry::icon(IconId::ShieldVerify, 14), ar ? QStringLiteral("فحص الملف") : QStringLiteral("Verify File")), &QAction::triggered, this, &MainWindow::verifySelectedTaskHash);
     menu.addSeparator();
-    connect(menu.addAction(IconRegistry::icon(IconId::TrashDelete, 14), QStringLiteral("Remove from List")), &QAction::triggered, this, [this]() { deleteSelectedTask(false); });
-    connect(menu.addAction(IconRegistry::icon(IconId::TrashDelete, 14), QStringLiteral("Delete Task & Disk File")), &QAction::triggered, this, [this]() { deleteSelectedTask(true); });
+    connect(menu.addAction(IconRegistry::icon(IconId::TrashDelete, 14), ar ? QStringLiteral("إزالة من القائمة") : QStringLiteral("Remove")), &QAction::triggered, this, [this]() { deleteSelectedTask(false); });
+    connect(menu.addAction(IconRegistry::icon(IconId::TrashDelete, 14), ar ? QStringLiteral("حذف مع الملف من القرص") : QStringLiteral("Delete File from Disk")), &QAction::triggered, this, [this]() { deleteSelectedTask(true); });
     menu.exec(m_tableView->viewport()->mapToGlobal(pos));
 }
 

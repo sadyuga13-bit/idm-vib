@@ -30,8 +30,8 @@ SavePathsSettingsPage::SavePathsSettingsPage(QWidget* parent)
     root->setContentsMargins(14, 14, 14, 14);
     root->setSpacing(12);
 
-    auto* catBox = new QGroupBox(ar ? QStringLiteral("مجلدات التصنيف الذكي والمساحة الحرة")
-                                    : QStringLiteral("Smart Category Directories & Volume Free Space"), this);
+    auto* catBox = new QGroupBox(ar ? QStringLiteral("مجلدات الحفظ")
+                                    : QStringLiteral("Save To Directories"), this);
     auto* catForm = new QFormLayout(catBox);
     catForm->setSpacing(10);
 
@@ -53,37 +53,37 @@ SavePathsSettingsPage::SavePathsSettingsPage(QWidget* parent)
             CategoryRouter::categoryDisplayName(c),
             static_cast<int>(c));
     }
-    catForm->addRow(ar ? QStringLiteral("التصنيف:") : QStringLiteral("Category:"), m_categoryCombo);
+    catForm->addRow(ar ? QStringLiteral("الفئة:") : QStringLiteral("Category:"), m_categoryCombo);
 
     auto* pathRow = new QHBoxLayout();
     m_catPathEdit = new QLineEdit(catBox);
-    auto* btnBrowseCat = new QPushButton(ar ? QStringLiteral("استعراض") : QStringLiteral("Browse"), catBox);
+    auto* btnBrowseCat = new QPushButton(ar ? QStringLiteral("استعراض...") : QStringLiteral("Browse..."), catBox);
     btnBrowseCat->setIcon(IconRegistry::icon(IconId::FolderOpen, 14));
     pathRow->addWidget(m_catPathEdit, 1);
     pathRow->addWidget(btnBrowseCat);
-    catForm->addRow(ar ? QStringLiteral("مسار الحفظ:") : QStringLiteral("Category Path:"), pathRow);
+    catForm->addRow(ar ? QStringLiteral("المجلد:") : QStringLiteral("Path:"), pathRow);
 
     m_lblFreeSpace = new QLabel(catBox);
     m_lblFreeSpace->setFont(ThemeTokens::monoFont(false));
-    catForm->addRow(ar ? QStringLiteral("مساحة القرص:") : QStringLiteral("Disk Volume:"), m_lblFreeSpace);
+    catForm->addRow(ar ? QStringLiteral("المساحة المتوفرة:") : QStringLiteral("Free space:"), m_lblFreeSpace);
     root->addWidget(catBox);
 
-    auto* tempBox = new QGroupBox(ar ? QStringLiteral("مجلد الأجزاء المؤقتة (.part) والحجز المسبق")
-                                     : QStringLiteral("Temporary .part Directory & Preallocation"), this);
+    auto* tempBox = new QGroupBox(ar ? QStringLiteral("الملفات المؤقتة")
+                                     : QStringLiteral("Temporary Directory"), this);
     auto* tempForm = new QFormLayout(tempBox);
     tempForm->setSpacing(10);
 
     auto* tempRow = new QHBoxLayout();
     m_tempPartEdit = new QLineEdit(cfg.tempPartDirectory(), tempBox);
-    auto* btnBrowseTemp = new QPushButton(ar ? QStringLiteral("استعراض") : QStringLiteral("Browse"), tempBox);
+    auto* btnBrowseTemp = new QPushButton(ar ? QStringLiteral("استعراض...") : QStringLiteral("Browse..."), tempBox);
     btnBrowseTemp->setIcon(IconRegistry::icon(IconId::FolderOpen, 14));
     tempRow->addWidget(m_tempPartEdit, 1);
     tempRow->addWidget(btnBrowseTemp);
-    tempForm->addRow(ar ? QStringLiteral("مجلد المؤقت (.part):") : QStringLiteral("Temp .part Folder:"), tempRow);
+    tempForm->addRow(ar ? QStringLiteral("مجلد الملفات المؤقتة:") : QStringLiteral("Temporary folder:"), tempRow);
 
     m_chkPreallocate = new QCheckBox(
-        ar ? QStringLiteral("حجز المساحة الكاملة للملف مسبقاً على القرص لمنع تشتت البيانات (NTFS Preallocation)")
-           : QStringLiteral("Preallocate full file size on disk before downloading (prevents NTFS fragmentation)"), tempBox);
+        ar ? QStringLiteral("حجز مساحة الملف مسبقاً على القرص")
+           : QStringLiteral("Preallocate disk space before downloading"), tempBox);
     m_chkPreallocate->setChecked(cfg.preallocateDiskSpace());
     tempForm->addRow(m_chkPreallocate);
     root->addWidget(tempBox);

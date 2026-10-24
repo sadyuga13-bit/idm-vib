@@ -23,29 +23,29 @@ ConnectionSettingsPage::ConnectionSettingsPage(QWidget* parent)
     root->setSpacing(10);
 
     auto* connGroup = new QGroupBox(
-        ar ? QStringLiteral("الاتصالات والتوازي والشبكة") : QStringLiteral("Multi-Segment Connections & Network"), this);
+        ar ? QStringLiteral("الاتصال والسرعة") : QStringLiteral("Connection & Speed"), this);
     auto* form = new QFormLayout(connGroup);
     form->setSpacing(8);
 
     m_spinDefaultSegments = new QSpinBox(this);
     m_spinDefaultSegments->setRange(1, 32);
     m_spinDefaultSegments->setValue(cfg.defaultSegments());
-    form->addRow(ar ? QStringLiteral("أقصى عدد اتصالات افتراضي لكل ملف (1-32):")
-                    : QStringLiteral("Default Max Connections per File (1-32):"), m_spinDefaultSegments);
+    form->addRow(ar ? QStringLiteral("أقصى عدد افتراضي للاتصالات:")
+                    : QStringLiteral("Default max. connections:"), m_spinDefaultSegments);
 
     m_spinMaxConcurrent = new QSpinBox(this);
     m_spinMaxConcurrent->setRange(1, 16);
     m_spinMaxConcurrent->setValue(cfg.maxConcurrentDownloads());
-    form->addRow(ar ? QStringLiteral("أقصى عدد ملفات تحمل بالتزامن:")
-                    : QStringLiteral("Max Concurrent Active Downloads:"), m_spinMaxConcurrent);
+    form->addRow(ar ? QStringLiteral("التحميلات المتزامنة:")
+                    : QStringLiteral("Max concurrent downloads:"), m_spinMaxConcurrent);
 
     m_spinSpeedLimitKiB = new QSpinBox(this);
     m_spinSpeedLimitKiB->setRange(0, 1000000);
     m_spinSpeedLimitKiB->setSingleStep(128);
-    m_spinSpeedLimitKiB->setSuffix(QStringLiteral(" KiB/s (0 = Unlimited)"));
+    m_spinSpeedLimitKiB->setSuffix(QStringLiteral(" KB/s"));
     m_spinSpeedLimitKiB->setValue(static_cast<int>(cfg.globalSpeedLimitKiB()));
-    form->addRow(ar ? QStringLiteral("محدد السرعة الكلي:")
-                    : QStringLiteral("Global Speed Limit:"), m_spinSpeedLimitKiB);
+    form->addRow(ar ? QStringLiteral("حد السرعة الكلي:")
+                    : QStringLiteral("Speed limit:"), m_spinSpeedLimitKiB);
 
     auto* netRow = new QHBoxLayout();
     m_spinTimeoutSec = new QSpinBox(this);
@@ -68,21 +68,21 @@ ConnectionSettingsPage::ConnectionSettingsPage(QWidget* parent)
 
     netRow->addWidget(new QLabel(ar ? QStringLiteral("المهلة:") : QStringLiteral("Timeout:"), this));
     netRow->addWidget(m_spinTimeoutSec);
-    netRow->addWidget(new QLabel(ar ? QStringLiteral("تأخير الإعادة:") : QStringLiteral("Retry Delay:"), this));
+    netRow->addWidget(new QLabel(ar ? QStringLiteral("الانتظار:") : QStringLiteral("Delay:"), this));
     netRow->addWidget(m_spinRetryDelaySec);
     netRow->addWidget(new QLabel(ar ? QStringLiteral("المحاولات:") : QStringLiteral("Retries:"), this));
     netRow->addWidget(m_spinMaxRetries);
-    netRow->addWidget(new QLabel(QStringLiteral("IPC Port:"), this));
+    netRow->addWidget(new QLabel(ar ? QStringLiteral("المنفذ:") : QStringLiteral("Port:"), this));
     netRow->addWidget(m_spinIpcPort);
-    form->addRow(ar ? QStringLiteral("معاملات إعادة المحاولة والمنفذ:") : QStringLiteral("Retry & Extension Port:"), netRow);
+    form->addRow(ar ? QStringLiteral("إعادة المحاولة:") : QStringLiteral("Retries & Port:"), netRow);
 
     auto* uaRow = new QHBoxLayout();
     m_uaPresetCombo = new QComboBox(this);
-    m_uaPresetCombo->addItem(QStringLiteral("Chrome 134 Windows"),
+    m_uaPresetCombo->addItem(QStringLiteral("Chrome (Windows)"),
         QStringLiteral("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"));
-    m_uaPresetCombo->addItem(QStringLiteral("Edge 134 Windows"),
+    m_uaPresetCombo->addItem(QStringLiteral("Edge (Windows)"),
         QStringLiteral("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0"));
-    m_uaPresetCombo->addItem(QStringLiteral("Firefox 135 Windows"),
+    m_uaPresetCombo->addItem(QStringLiteral("Firefox (Windows)"),
         QStringLiteral("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0"));
     m_uaEdit = new QLineEdit(cfg.userAgent(), this);
     connect(m_uaPresetCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int idx) {
@@ -90,12 +90,12 @@ ConnectionSettingsPage::ConnectionSettingsPage(QWidget* parent)
     });
     uaRow->addWidget(m_uaPresetCombo);
     uaRow->addWidget(m_uaEdit, 1);
-    form->addRow(ar ? QStringLiteral("هوية المتصفح (User-Agent):") : QStringLiteral("HTTP User-Agent:"), uaRow);
+    form->addRow(ar ? QStringLiteral("وكيل المستخدم:") : QStringLiteral("User-Agent:"), uaRow);
     root->addWidget(connGroup);
 
     auto* capGroup = new QGroupBox(
-        ar ? QStringLiteral("سقف الاتصالات المخصص لكل سيرفر (Per-Server Connection Cap)")
-           : QStringLiteral("Per-Domain / Server Connection Cap"), this);
+        ar ? QStringLiteral("استثناءات الخوادم")
+           : QStringLiteral("Server Exceptions"), this);
     auto* capLayout = new QVBoxLayout(capGroup);
 
     auto* addCapRow = new QHBoxLayout();
@@ -104,8 +104,8 @@ ConnectionSettingsPage::ConnectionSettingsPage(QWidget* parent)
     m_domainCapSpin = new QSpinBox(this);
     m_domainCapSpin->setRange(1, 32);
     m_domainCapSpin->setValue(4);
-    auto* btnAddCap = new QPushButton(ar ? QStringLiteral("إضافة / تحديث") : QStringLiteral("Add / Update"), this);
-    auto* btnRemCap = new QPushButton(ar ? QStringLiteral("حذف المحدد") : QStringLiteral("Remove Selected"), this);
+    auto* btnAddCap = new QPushButton(ar ? QStringLiteral("إضافة") : QStringLiteral("Add"), this);
+    auto* btnRemCap = new QPushButton(ar ? QStringLiteral("حذف") : QStringLiteral("Remove"), this);
     connect(btnAddCap, &QPushButton::clicked, this, &ConnectionSettingsPage::onAddDomainCapClicked);
     connect(btnRemCap, &QPushButton::clicked, this, &ConnectionSettingsPage::onRemoveDomainCapClicked);
     addCapRow->addWidget(m_domainCapHostEdit, 1);
@@ -116,8 +116,8 @@ ConnectionSettingsPage::ConnectionSettingsPage(QWidget* parent)
 
     m_domainCapsTable = new QTableWidget(0, 2, this);
     m_domainCapsTable->setHorizontalHeaderLabels({
-        ar ? QStringLiteral("النطاق / السيرفر") : QStringLiteral("Server Host / Domain"),
-        ar ? QStringLiteral("أقصى اتصالات") : QStringLiteral("Max Connections")
+        ar ? QStringLiteral("الخادم") : QStringLiteral("Server"),
+        ar ? QStringLiteral("الاتصالات") : QStringLiteral("Connections")
     });
     m_domainCapsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_domainCapsTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
@@ -129,24 +129,24 @@ ConnectionSettingsPage::ConnectionSettingsPage(QWidget* parent)
     root->addWidget(capGroup);
 
     auto* ytGroup = new QGroupBox(
-        ar ? QStringLiteral("محرك VibeTube C++20 الأصلي المدمج ليوتيوب (بدون أي برامج خارجية)")
-           : QStringLiteral("Built-in VibeTube C++20 Multi-Client Engine (Zero External Dependencies)"), this);
+        ar ? QStringLiteral("تنزيل الفيديو من يوتيوب")
+           : QStringLiteral("YouTube Downloads"), this);
     auto* ytRow = new QHBoxLayout(ytGroup);
     m_lblYtDlpStatus = new QLabel(
-        ar ? QStringLiteral("مدمج بالكامل داخل النظام: بروتوكول ثلاثي القنوات (ANDROID_VR 4K + iOS + Android 14)")
-           : QStringLiteral("100% Built-in Native Engine Active: 3-Stage Cascade (ANDROID_VR 4K + iOS + Android 14)"),
+        ar ? QStringLiteral("مُفعّل وجاهز (يدعم الجودات حتى 4K مباشر)")
+           : QStringLiteral("Enabled and ready (up to 4K direct streams)"),
         this);
     m_lblYtDlpStatus->setStyleSheet(QStringLiteral("color: #10B981; font-weight: 600;"));
     m_btnUpdateYtDlp = new QPushButton(
-        ar ? QStringLiteral("فحص استجابة محرك VibeTube") : QStringLiteral("Test VibeTube Engine"), this);
+        ar ? QStringLiteral("فحص الاتصال") : QStringLiteral("Test Connection"), this);
     connect(m_btnUpdateYtDlp, &QPushButton::clicked, this, &ConnectionSettingsPage::onUpdateYtDlpClicked);
     connect(&m_ytExtractor, &network::YoutubeExtractor::extractionCompleted, this,
-        [this](const network::YoutubeVideoInfo& info) {
+        [this, ar](const network::YoutubeVideoInfo& info) {
             m_btnUpdateYtDlp->setEnabled(true);
             m_lblYtDlpStatus->setText(info.success
-                ? QStringLiteral("VibeTube Native Engine Verified [%1] - %2 Streams Ready")
-                      .arg(info.activeClientName).arg(info.formats.size())
-                : QStringLiteral("VibeTube Engine Ready (Multi-Client Standby)"));
+                ? (ar ? QStringLiteral("الاتصال سليم (%1 صيغة متاحة)").arg(info.formats.size())
+                      : QStringLiteral("Connection verified (%1 streams found)").arg(info.formats.size()))
+                : (ar ? QStringLiteral("جاهز") : QStringLiteral("Ready")));
         });
     ytRow->addWidget(m_lblYtDlpStatus, 1);
     ytRow->addWidget(m_btnUpdateYtDlp);

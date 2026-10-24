@@ -40,17 +40,18 @@ DownloadProgressDialog::DownloadProgressDialog(network::DownloadTask* task, QWid
                  trText(QStringLiteral("prog.tab.completion"), QStringLiteral("Options on Completion")));
     root->addWidget(tabs, 1);
 
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
     auto* footer = new QHBoxLayout();
-    m_btnPinTop = new QPushButton(QStringLiteral("Always on Top"), this);
+    m_btnPinTop = new QPushButton(ar ? QStringLiteral("تثبيت في المقدمة") : QStringLiteral("Always on Top"), this);
     m_btnPinTop->setCheckable(true);
     footer->addWidget(m_btnPinTop);
     footer->addStretch(1);
 
-    m_btnPauseResume = new QPushButton(QStringLiteral("Pause"), this);
+    m_btnPauseResume = new QPushButton(ar ? QStringLiteral("إيقاف مؤقت") : QStringLiteral("Pause"), this);
     m_btnPauseResume->setIcon(IconRegistry::icon(IconId::Pause, 14));
-    m_btnCancelTask = new QPushButton(QStringLiteral("Cancel Download"), this);
+    m_btnCancelTask = new QPushButton(ar ? QStringLiteral("إلغاء التحميل") : QStringLiteral("Cancel"), this);
     m_btnCancelTask->setIcon(IconRegistry::icon(IconId::StopSquare, 14));
-    auto* btnHide = new QPushButton(QStringLiteral("Hide Window"), this);
+    auto* btnHide = new QPushButton(ar ? QStringLiteral("إخفاء") : QStringLiteral("Hide"), this);
     footer->addWidget(m_btnPauseResume);
     footer->addWidget(m_btnCancelTask);
     footer->addWidget(btnHide);
@@ -81,12 +82,13 @@ DownloadProgressDialog::~DownloadProgressDialog() {
 }
 
 QWidget* DownloadProgressDialog::buildStatusTab() {
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
     layout->setContentsMargins(10, 10, 10, 10);
     layout->setSpacing(8);
 
-    auto* infoBox = new QGroupBox(QStringLiteral("Live Transfer Telemetry"), page);
+    auto* infoBox = new QGroupBox(ar ? QStringLiteral("معلومات التحميل") : QStringLiteral("Download Information"), page);
     auto* form = new QFormLayout(infoBox);
     form->setSpacing(5);
 
@@ -105,13 +107,13 @@ QWidget* DownloadProgressDialog::buildStatusTab() {
     m_lblTimeLeft = makeMono();
     m_lblResumeCapability = makeMono();
 
-    form->addRow(QStringLiteral("Endpoint:"), m_lblUrl);
-    form->addRow(QStringLiteral("Status:"), m_lblStatus);
-    form->addRow(QStringLiteral("File Size:"), m_lblFileSize);
-    form->addRow(QStringLiteral("Downloaded:"), m_lblDownloaded);
-    form->addRow(QStringLiteral("Transfer Rate:"), m_lblTransferRate);
-    form->addRow(QStringLiteral("Time Left:"), m_lblTimeLeft);
-    form->addRow(QStringLiteral("Resume Support:"), m_lblResumeCapability);
+    form->addRow(ar ? QStringLiteral("الرابط:") : QStringLiteral("URL:"), m_lblUrl);
+    form->addRow(ar ? QStringLiteral("الحالة:") : QStringLiteral("Status:"), m_lblStatus);
+    form->addRow(ar ? QStringLiteral("حجم الملف:") : QStringLiteral("File size:"), m_lblFileSize);
+    form->addRow(ar ? QStringLiteral("المحمل:") : QStringLiteral("Downloaded:"), m_lblDownloaded);
+    form->addRow(ar ? QStringLiteral("معدل النقل:") : QStringLiteral("Transfer rate:"), m_lblTransferRate);
+    form->addRow(ar ? QStringLiteral("الوقت المتبقي:") : QStringLiteral("Time left:"), m_lblTimeLeft);
+    form->addRow(ar ? QStringLiteral("إمكانية الاستئناف:") : QStringLiteral("Resume capability:"), m_lblResumeCapability);
     layout->addWidget(infoBox);
 
     m_mainProgress = new QProgressBar(page);
@@ -120,11 +122,11 @@ QWidget* DownloadProgressDialog::buildStatusTab() {
     layout->addWidget(m_mainProgress);
 
     auto* segHeaderRow = new QHBoxLayout();
-    segHeaderRow->addWidget(new QLabel(QStringLiteral("Byte Positions & Live Connections (1-32):"), page));
+    segHeaderRow->addWidget(new QLabel(ar ? QStringLiteral("الاتصالات:") : QStringLiteral("Connections:"), page));
     segHeaderRow->addStretch(1);
     m_liveConnectionsCombo = new QComboBox(page);
     for (int c : {1, 2, 4, 8, 12, 16, 24, 32}) {
-        m_liveConnectionsCombo->addItem(QStringLiteral("%1 Connections").arg(c), c);
+        m_liveConnectionsCombo->addItem(ar ? QStringLiteral("%1 اتصالات").arg(c) : QStringLiteral("%1 Connections").arg(c), c);
     }
     m_liveConnectionsCombo->setCurrentIndex(3);
     connect(m_liveConnectionsCombo, &QComboBox::currentIndexChanged, this, [this](int idx) {
@@ -151,19 +153,20 @@ QWidget* DownloadProgressDialog::buildStatusTab() {
 }
 
 QWidget* DownloadProgressDialog::buildSpeedLimiterTab() {
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
-    auto* box = new QGroupBox(QStringLiteral("Per-Task Token-Bucket Rate Limiter"), page);
+    auto* box = new QGroupBox(ar ? QStringLiteral("تحديد سرعة التحميل") : QStringLiteral("Speed Limiter"), page);
     auto* form = new QFormLayout(box);
 
-    m_chkTaskSpeedLimit = new QCheckBox(QStringLiteral("Enable speed limit for this download"), box);
+    m_chkTaskSpeedLimit = new QCheckBox(ar ? QStringLiteral("تفعيل محدد السرعة لهذا الملف") : QStringLiteral("Use speed limiter for this download"), box);
     m_spinTaskSpeedKiB = new QSpinBox(box);
     m_spinTaskSpeedKiB->setRange(16, 1000000);
     m_spinTaskSpeedKiB->setValue(1024);
     m_spinTaskSpeedKiB->setSuffix(QStringLiteral(" KB/s"));
 
     form->addRow(m_chkTaskSpeedLimit);
-    form->addRow(QStringLiteral("Maximum Speed:"), m_spinTaskSpeedKiB);
+    form->addRow(ar ? QStringLiteral("السرعة القصوى:") : QStringLiteral("Maximum speed:"), m_spinTaskSpeedKiB);
     layout->addWidget(box);
     layout->addStretch(1);
 
@@ -178,27 +181,28 @@ QWidget* DownloadProgressDialog::buildSpeedLimiterTab() {
 }
 
 QWidget* DownloadProgressDialog::buildCompletionOptionsTab() {
+    const bool ar = i18n::I18nManager::instance().isRightToLeft();
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
-    auto* box = new QGroupBox(QStringLiteral("Post-Download Actions"), page);
+    auto* box = new QGroupBox(ar ? QStringLiteral("الإجراء بعد انتهاء التحميل") : QStringLiteral("Actions on Completion"), page);
     auto* form = new QFormLayout(box);
 
-    m_chkCloseOnComplete = new QCheckBox(QStringLiteral("Close this progress window when download completes"), box);
+    m_chkCloseOnComplete = new QCheckBox(ar ? QStringLiteral("إغلاق هذه النافذة عند انتهاء التحميل") : QStringLiteral("Close this window when download completes"), box);
     m_chkCloseOnComplete->setChecked(true);
-    m_chkShowCompleteDlg = new QCheckBox(QStringLiteral("Show completion summary & antivirus verification dialog"), box);
+    m_chkShowCompleteDlg = new QCheckBox(ar ? QStringLiteral("إظهار نافذة اكتمال التحميل") : QStringLiteral("Show download complete dialog"), box);
     m_chkShowCompleteDlg->setChecked(config::AppConfig::instance().showCompletionDialog());
 
     m_powerActionCombo = new QComboBox(box);
     m_powerActionCombo->addItems({
-        QStringLiteral("Do Nothing"),
-        QStringLiteral("Put Computer to Sleep"),
-        QStringLiteral("Hibernate System"),
-        QStringLiteral("Shut Down Computer (60s Countdown)")
+        ar ? QStringLiteral("بدون إجراء") : QStringLiteral("None"),
+        ar ? QStringLiteral("وضع السكون") : QStringLiteral("Sleep"),
+        ar ? QStringLiteral("السبات") : QStringLiteral("Hibernate"),
+        ar ? QStringLiteral("إيقاف تشغيل الكمبيوتر") : QStringLiteral("Turn off computer")
     });
 
     form->addRow(m_chkCloseOnComplete);
     form->addRow(m_chkShowCompleteDlg);
-    form->addRow(QStringLiteral("System Power Action:"), m_powerActionCombo);
+    form->addRow(ar ? QStringLiteral("خيارات الطاقة:") : QStringLiteral("Power action:"), m_powerActionCombo);
     layout->addWidget(box);
     layout->addStretch(1);
     return page;
