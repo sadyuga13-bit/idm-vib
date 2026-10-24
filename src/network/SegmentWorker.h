@@ -57,6 +57,7 @@ public:
     [[nodiscard]] int segmentId() const noexcept { return m_segmentId; }
     [[nodiscard]] core::SegmentState state() const noexcept { return m_state; }
     [[nodiscard]] qint64 remainingBytes() const noexcept;
+    [[nodiscard]] qint64 totalDownloadedBytes() const noexcept;
     [[nodiscard]] bool isRangeFullyDownloaded() const noexcept;
 
 signals:
@@ -64,6 +65,7 @@ signals:
     void segmentFinished(int segmentId);
     void segmentFailed(int segmentId, const QString& errorMessage);
     void stateUpdated(int segmentId);
+    void logEvent(int segmentId, const QString& message);
 
 private:
     void drainAvailableBytes();
@@ -91,6 +93,7 @@ private:
     QTimer m_throttleTimer;
     QElapsedTimer m_rateTimer;
     qint64 m_bytesInWindow{0};
+    qint64 m_priorCompletedBytes{0};
     int m_retryCount{0};
     bool m_completedByTruncation{false};
 };

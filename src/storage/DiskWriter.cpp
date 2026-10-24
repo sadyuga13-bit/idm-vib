@@ -4,6 +4,7 @@
 #include <QFileInfo>
 #include <QMutexLocker>
 #include <QStorageInfo>
+#include <QThread>
 
 namespace idm::storage {
 
@@ -155,24 +156,34 @@ bool DiskWriter::finalizeFile(QString* errorOut) {
             return true;
         }
         if (errorOut != nullptr) {
-            *errorOut = QStringLiteral("Part file missing during finalization.");
+            *errorOut = QStringLiteral("Part file missing during finalization: %1").arg(m_partPath);
         }
         return false;
     }
 
-    if (QFile::exists(m_targetPath)) {
-        QFile::remove(m_targetPath);
-    }
-
-    if (!QFile::rename(m_partPath, m_targetPath)) {
-        if (errorOut != nullptr) {
-            *errorOut = QStringLiteral("Failed to rename '%1' to '%2'.")
-                            .arg(m_partPath, m_targetPath);
+    for (int attempt = 0; attempt < 15; ++attempt) {
+        if (QFile::exists(m_targetPath)) {
+            QFile::setPermissions(m_targetPath, QFileDevice::ReadOther | QFileDevice::WriteOther |
+                                                QFileDevice::ReadUser | QFileDevice::WriteUser |
+                                                QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+            QFile::remove(m_targetPath);
         }
-        return false;
+        if (QFile::rename(m_partPath, m_targetPath)) {
+            return true;
+        }
+        QThread::msleep(80);
     }
 
-    return true;
+    if (QFile::copy(m_partPath, m_targetPath)) {
+        QFile::remove(m_partPath);
+        return true;
+    }
+
+    if (errorOut != nullptr) {
+        *errorOut = QStringLiteral("Failed to finalize '%1' -> '%2' (locked by Antivirus/OS).")
+                        .arg(m_partPath, m_targetPath);
+    }
+    return false;
 }
 
 void DiskWriter::removePartFile() {

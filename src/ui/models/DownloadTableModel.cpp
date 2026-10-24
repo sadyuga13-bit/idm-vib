@@ -107,6 +107,9 @@ QVariant DownloadTableModel::data(const QModelIndex& index, int role) const {
             case ColProgress:
                 return QStringLiteral("%1%").arg(m.progressPercent(), 0, 'f', 1);
             case ColStatus:
+                if (m.state == core::TaskState::Failed && !m.errorMessage.isEmpty()) {
+                    return QStringLiteral("%1: %2").arg(core::FormatUtils::stateToString(m.state), m.errorMessage);
+                }
                 return core::FormatUtils::stateToString(m.state);
             case ColSpeed:
                 return m.state == core::TaskState::Active

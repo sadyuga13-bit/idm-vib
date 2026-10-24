@@ -1,5 +1,6 @@
 #include "network/DownloadTask.h"
 #include "storage/CategoryRouter.h"
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QFile>
 #include <QUrl>
@@ -104,6 +105,7 @@ void DownloadTask::setDynamicSegmentCount(int newCount) {
         connect(worker, &SegmentWorker::bytesWritten, this, &DownloadTask::onSegmentBytesWritten);
         connect(worker, &SegmentWorker::segmentFinished, this, &DownloadTask::onSegmentFinished);
         connect(worker, &SegmentWorker::segmentFailed, this, &DownloadTask::onSegmentFailed);
+        connect(worker, &SegmentWorker::logEvent, this, [this](int, const QString& msg) { appendLog(msg); });
         m_workers.append(worker);
         worker->start(QUrl(m_metrics.url), m_profile, &m_nam);
     }
@@ -114,8 +116,7 @@ void DownloadTask::onYoutubeExtracted(const YoutubeVideoInfo& info) {
     if (!info.success || info.formats.isEmpty()) {
         m_metrics.errorMessage = info.errorMessage;
         appendLog(QStringLiteral("[YouTubeError] %1").arg(info.errorMessage));
-        setState(core::TaskState::Failed);
-        return;
+        setState(core::TaskState::Failed); return;
     }
     const YoutubeFormat& fmt = info.formats.first();
     m_metrics.url = fmt.directUrl;
@@ -123,19 +124,15 @@ void DownloadTask::onYoutubeExtracted(const YoutubeVideoInfo& info) {
     m_metrics.fileName = YoutubeExtractor::sanitizeVideoFileName(info.title, fmt.qualityTag, fmt.fileExtension);
     m_metrics.category = storage::CategoryRouter::classifyFileName(m_metrics.fileName);
     if (fmt.contentLength > 0) {
-        m_metrics.totalBytes = fmt.contentLength;
-        m_metrics.resumeSupported = true;
+        m_metrics.totalBytes = fmt.contentLength; m_metrics.resumeSupported = true;
         initializeSegmentsAndStart(false);
-    } else {
-        m_prober.probeUrl(QUrl(m_metrics.url), m_profile);
-    }
+    } else { m_prober.probeUrl(QUrl(m_metrics.url), m_profile); }
 }
 void DownloadTask::onProbeCompleted(const ProbeResult& result) {
     if (!result.success) {
         m_metrics.errorMessage = result.errorMessage;
         appendLog(QStringLiteral("[ProbeError] %1").arg(result.errorMessage));
-        setState(core::TaskState::Failed);
-        return;
+        setState(core::TaskState::Failed); return;
     }
     if (result.finalUrl.isValid()) { m_metrics.url = result.finalUrl.toString(); }
     if (m_metrics.fileName.isEmpty() && !result.suggestedFileName.isEmpty()) {
@@ -194,6 +191,7 @@ void DownloadTask::spawnWorkersFromMetrics() {
         connect(worker, &SegmentWorker::bytesWritten, this, &DownloadTask::onSegmentBytesWritten);
         connect(worker, &SegmentWorker::segmentFinished, this, &DownloadTask::onSegmentFinished);
         connect(worker, &SegmentWorker::segmentFailed, this, &DownloadTask::onSegmentFailed);
+        connect(worker, &SegmentWorker::logEvent, this, [this](int, const QString& msg) { appendLog(msg); });
         m_workers.append(worker);
         worker->start(targetUrl, m_profile, &m_nam);
     }
@@ -212,13 +210,12 @@ void DownloadTask::onSegmentFinished(int segmentId) {
     for (SegmentWorker* w : m_workers) {
         if (w->segmentId() == segmentId) { idleWorker = w; }
         else if (w->state() == core::SegmentState::Downloading && w->remainingBytes() > maxRem) {
-            maxRem = w->remainingBytes();
-            largestWorker = w;
+            maxRem = w->remainingBytes(); largestWorker = w;
         }
     }
-    const qint64 splitMinThreshold = (m_capabilityToken != nullptr)
-        ? m_capabilityToken->resolveInFlightSplitThreshold() : 1048576LL;
-    if (m_metrics.resumeSupported && idleWorker != nullptr && largestWorker != nullptr && maxRem >= splitMinThreshold) {
+    const bool isYoutubeStream = m_metrics.url.contains(QStringLiteral("googlevideo.com"), Qt::CaseInsensitive);
+    const qint64 splitMinThreshold = 8 * 1024 * 1024LL;
+    if (!isYoutubeStream && m_metrics.resumeSupported && idleWorker != nullptr && largestWorker != nullptr && maxRem >= splitMinThreshold) {
         const SplitRange split = largestWorker->tryStealHalf(splitMinThreshold);
         if (split.valid) {
             appendLog(QStringLiteral("[InFlightSplit] Segment #%1 stole [%2 - %3] from Segment #%4")
@@ -255,9 +252,8 @@ void DownloadTask::onTickMetrics() {
     m_metrics.segments.clear();
     qint64 sumDownloaded = 0;
     for (const SegmentWorker* w : m_workers) {
-        const core::SegmentInfo snap = w->snapshot();
-        m_metrics.segments.append(snap);
-        sumDownloaded += std::max<qint64>(0, snap.currentOffset - snap.startOffset);
+        m_metrics.segments.append(w->snapshot());
+        sumDownloaded += w->totalDownloadedBytes();
     }
     if (!m_workers.isEmpty()) {
         m_metrics.downloadedBytes = (m_metrics.totalBytes > 0) ? std::min(sumDownloaded, m_metrics.totalBytes) : sumDownloaded;
@@ -294,6 +290,12 @@ void DownloadTask::appendLog(const QString& message) {
     const QString line = QStringLiteral("[%1] %2").arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss.zzz")), message);
     m_logs.append(line);
     if (m_logs.size() > 500) { m_logs.removeFirst(); }
+    if (message.contains(QStringLiteral("Error]")) || message.contains(QStringLiteral("[Warn]"))) {
+        QFile errFile(QCoreApplication::applicationDirPath() + QStringLiteral("/idm_vibe_errors.log"));
+        if (errFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+            errFile.write((line + QStringLiteral(" | File: ") + m_metrics.fileName + QStringLiteral("\n")).toUtf8());
+        }
+    }
     emit logAdded(m_metrics.taskId, line);
 }
 } // namespace idm::network

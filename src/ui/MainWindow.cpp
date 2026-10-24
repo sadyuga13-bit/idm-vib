@@ -185,11 +185,8 @@ void MainWindow::wireSignals() {
     });
     connect(&m_clipboardWatcher, &ipc::ClipboardWatcher::downloadUrlDetected, this, [this](const QString& url) { openAddDownloadDialog(url); });
     connect(&m_ipcServer, &ipc::BrowserIpcServer::browserDownloadIntercepted, this,
-        [this](const QString& url, const QString& suggestedName, const network::RequestProfile& prof) {
-            openAddDownloadDialog(url, prof, suggestedName);
-        });
+        [this](const QString& url, const QString& suggestedName, const network::RequestProfile& prof) { openAddDownloadDialog(url, prof, suggestedName); });
 }
-
 void MainWindow::wireTraySignals() {
     connect(&m_trayController, &system::TrayController::showMainWindowRequested, this, [this]() { showNormal(); raise(); activateWindow(); });
     connect(&m_trayController, &system::TrayController::addUrlRequested, this, [this]() { showNormal(); raise(); activateWindow(); openAddDownloadDialog(); });
@@ -197,12 +194,9 @@ void MainWindow::wireTraySignals() {
     connect(&m_trayController, &system::TrayController::stopAllRequested, m_scheduler, &network::QueueScheduler::stopAllTasks);
     connect(&m_trayController, &system::TrayController::speedLimitPresetSelected, this, [this](qint64 kib) {
         AppConfig::instance().setGlobalSpeedLimitKiB(kib);
-        m_scheduler->globalSpeedLimiter()->setLimitKiBPerSec(kib);
-        m_toolbar->setSpeedLimitValue(kib);
+        m_scheduler->globalSpeedLimiter()->setLimitKiBPerSec(kib); m_toolbar->setSpeedLimitValue(kib);
     });
-    connect(&m_trayController, &system::TrayController::exitApplicationRequested, this, [this]() {
-        m_forceQuit = true; close(); QApplication::quit();
-    });
+    connect(&m_trayController, &system::TrayController::exitApplicationRequested, this, [this]() { m_forceQuit = true; close(); QApplication::quit(); });
 }
 
 void MainWindow::bindTaskPopups(network::DownloadTask* task) {
@@ -210,6 +204,10 @@ void MainWindow::bindTaskPopups(network::DownloadTask* task) {
     connect(task, &network::DownloadTask::stateChanged, this, [this, task](const QString&, core::TaskState st) {
         if (st == core::TaskState::Completed && AppConfig::instance().showCompletionDialog()) {
             (new dialogs::DownloadCompleteDialog(task->metrics(), this))->show();
+        } else if (st == core::TaskState::Failed) {
+            m_lblIpcStatus->setText(QStringLiteral("[%1] %2").arg(task->metrics().fileName, task->metrics().errorMessage));
+            m_lblIpcStatus->setStyleSheet(QStringLiteral("color: #EF4444; font-weight: 600;"));
+            m_inspectorDock->inspectTask(task);
         }
     });
 }

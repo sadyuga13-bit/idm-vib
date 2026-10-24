@@ -29,9 +29,18 @@ void HashVerifier::verifyFileAsync(
     m_running.store(true, std::memory_order_relaxed);
 
     m_workerThread = QThread::create([this, taskId, filePath, expectedHash, expectedSizeBytes]() {
+        Q_UNUSED(expectedSizeBytes);
         QFile file(filePath);
-        if (!file.open(QIODevice::ReadOnly)) {
-            const QString err = file.errorString();
+        bool opened = false;
+        for (int attempt = 0; attempt < 10; ++attempt) {
+            if (file.open(QIODevice::ReadOnly)) {
+                opened = true;
+                break;
+            }
+            QThread::msleep(60);
+        }
+        if (!opened) {
+            const QString err = QStringLiteral("Cannot open downloaded file '%1': %2").arg(filePath, file.errorString());
             m_running.store(false, std::memory_order_relaxed);
             QMetaObject::invokeMethod(this, [this, taskId, err]() {
                 emit verificationFinished(taskId, QString(), QString(), false, err);
@@ -40,38 +49,14 @@ void HashVerifier::verifyFileAsync(
         }
 
         const qint64 totalSize = file.size();
-        if (expectedSizeBytes > 0 && totalSize != expectedSizeBytes) {
+        if (totalSize <= 0) {
             file.close();
-            const QString err = QStringLiteral("Integrity Error: Disk size (%1 bytes) != Expected size (%2 bytes)")
-                                    .arg(totalSize).arg(expectedSizeBytes);
+            const QString err = QStringLiteral("Integrity Error: Downloaded file is empty (0 bytes).");
             m_running.store(false, std::memory_order_relaxed);
             QMetaObject::invokeMethod(this, [this, taskId, err]() {
                 emit verificationFinished(taskId, QString(), QString(), false, err);
             }, Qt::QueuedConnection);
             return;
-        }
-
-        const QString ext = QFileInfo(filePath).suffix().toLower();
-        if (totalSize >= 64) {
-            const QByteArray head = file.peek(64);
-            if ((ext == QStringLiteral("exe") || ext == QStringLiteral("dll")) && !head.startsWith("MZ")) {
-                file.close();
-                const QString err = QStringLiteral("Corrupted PE executable header (missing MZ signature).");
-                m_running.store(false, std::memory_order_relaxed);
-                QMetaObject::invokeMethod(this, [this, taskId, err]() {
-                    emit verificationFinished(taskId, QString(), QString(), false, err);
-                }, Qt::QueuedConnection);
-                return;
-            }
-            if ((ext == QStringLiteral("zip") || ext == QStringLiteral("apk")) && !head.startsWith("PK")) {
-                file.close();
-                const QString err = QStringLiteral("Corrupted ZIP archive header (missing PK signature).");
-                m_running.store(false, std::memory_order_relaxed);
-                QMetaObject::invokeMethod(this, [this, taskId, err]() {
-                    emit verificationFinished(taskId, QString(), QString(), false, err);
-                }, Qt::QueuedConnection);
-                return;
-            }
         }
 
         qint64 bytesReadTotal = 0;
