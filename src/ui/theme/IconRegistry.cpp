@@ -75,7 +75,7 @@ QColor IconRegistry::semanticColorForIcon(IconId id) noexcept {
         case IconId::KeySerial:        return QColor(0xEA, 0xB3, 0x08); // Yellow Gold
         case IconId::CategoryGeneric:  return QColor(0x64, 0x74, 0x8B); // Slate
     }
-    return ThemeTokens::accentPrimary();
+    return ThemeTokens::statusActive();
 }
 
 QPixmap IconRegistry::pixmap(IconId id, int sizePx, IconState state) {
